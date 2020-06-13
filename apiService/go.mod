@@ -5,6 +5,7 @@ require (
 	github.com/aws/aws-sdk-go v1.31.12
 	github.com/aws/aws-xray-sdk-go v1.0.1
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
+	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/go-playground/universal-translator v0.17.0 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.4

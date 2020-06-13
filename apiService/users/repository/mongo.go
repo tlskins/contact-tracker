@@ -58,6 +58,18 @@ func (r *MongoUserRepository) Update(_ context.Context, user *t.UpdateUser) (*t.
 	return &resp, err
 }
 
+func (r *MongoUserRepository) CheckIn(_ context.Context, id string, chk *t.CheckIn) (*t.User, error) {
+	sess, c := r.C(ColUsers)
+	defer sess.Close()
+
+	var resp t.User
+	err := m.Update(c, &resp, m.M{"_id": id}, m.M{"$push": m.M{"chks": m.M{
+		"$each": []interface{}{chk},
+		"$sort": m.M{"in": -1},
+	}}})
+	return &resp, err
+}
+
 func (r *MongoUserRepository) Create(_ context.Context, user *t.User) (*t.User, error) {
 	sess, c := r.C(ColUsers)
 	defer sess.Close()

@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/contact-tracker/apiService/users"
-	t "github.com/contact-tracker/apiService/users/types"
+	"github.com/contact-tracker/apiService/places"
+	t "github.com/contact-tracker/apiService/places/types"
 
 	"github.com/gorilla/mux"
 )
@@ -17,7 +17,7 @@ import (
 const fiveSecondsTimeout = time.Second * 5
 
 type handler struct {
-	usecase users.UserService
+	usecase places.PlaceService
 }
 
 func writeErr(w http.ResponseWriter, err error) {
@@ -32,13 +32,13 @@ func (d *handler) Get(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	user, err := d.usecase.Get(ctx, id)
+	place, err := d.usecase.Get(ctx, id)
 	if err != nil {
 		writeErr(w, err)
 		return
 	}
 
-	data, err := json.Marshal(user)
+	data, err := json.Marshal(place)
 	if err != nil {
 		writeErr(w, err)
 		return
@@ -52,13 +52,13 @@ func (d *handler) GetAll(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
 	defer cancel()
 
-	users, err := d.usecase.GetAll(ctx)
+	places, err := d.usecase.GetAll(ctx)
 	if err != nil {
 		writeErr(w, err)
 		return
 	}
 
-	data, err := json.Marshal(users)
+	data, err := json.Marshal(places)
 	if err != nil {
 		writeErr(w, err)
 		return
@@ -73,48 +73,18 @@ func (d *handler) Update(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	decoder := json.NewDecoder(r.Body)
-	user := &t.UpdateUser{}
-	if err := decoder.Decode(&user); err != nil {
+	place := &t.UpdatePlace{}
+	if err := decoder.Decode(&place); err != nil {
 		writeErr(w, err)
 		return
 	}
 
 	vars := mux.Vars(r)
-	user.ID = vars["id"]
+	place.ID = vars["id"]
 
 	var err error
-	var usr *t.User
-	if usr, err = d.usecase.Update(ctx, user); err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	data, err := json.Marshal(usr)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
-}
-
-func (d *handler) CheckIn(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
-	defer cancel()
-
-	decoder := json.NewDecoder(r.Body)
-	req := &t.CheckInReq{}
-	if err := decoder.Decode(&req); err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	vars := mux.Vars(r)
-	id := vars["id"]
-
-	usr, err := d.usecase.CheckIn(ctx, id, req)
-	if err != nil {
+	var usr *t.Place
+	if usr, err = d.usecase.Update(ctx, place); err != nil {
 		writeErr(w, err)
 		return
 	}
@@ -133,16 +103,16 @@ func (d *handler) Create(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
 	defer cancel()
 
-	user := &t.User{}
+	place := &t.Place{}
 	var err error
 	decoder := json.NewDecoder(r.Body)
-	if err = decoder.Decode(&user); err != nil {
+	if err = decoder.Decode(&place); err != nil {
 		writeErr(w, err)
 		return
 	}
 
-	var resp *t.User
-	if resp, err = d.usecase.Create(ctx, user); err != nil {
+	var resp *t.Place
+	if resp, err = d.usecase.Create(ctx, place); err != nil {
 		writeErr(w, err)
 		return
 	}
@@ -175,20 +145,19 @@ func (d *handler) Delete(w http.ResponseWriter, r *http.Request) {
 
 // Routes -
 func Routes() (*mux.Router, error) {
-	fmt.Println("Starting user http routes...")
-	usecase, err := users.Init()
+	fmt.Println("Starting place http routes...")
+	usecase, err := places.InitMongoService()
 	if err != nil {
 		log.Panic(err)
 	}
 
 	h := &handler{usecase}
 	r := mux.NewRouter()
-	r.HandleFunc("/users", h.Create).Methods("POST")
-	r.HandleFunc("/users", h.GetAll).Methods("GET")
-	r.HandleFunc("/users/{id}", h.Get).Methods("GET")
-	r.HandleFunc("/users/{id}", h.Update).Methods("PUT")
-	r.HandleFunc("/users/{id}/check_in", h.CheckIn).Methods("PUT")
-	r.HandleFunc("/users/{id}", h.Delete).Methods("DELETE")
+	r.HandleFunc("/places", h.Create).Methods("POST")
+	r.HandleFunc("/places", h.GetAll).Methods("GET")
+	r.HandleFunc("/places/{id}", h.Get).Methods("GET")
+	r.HandleFunc("/places/{id}", h.Update).Methods("PUT")
+	r.HandleFunc("/places/{id}", h.Delete).Methods("DELETE")
 
 	return r, nil
 }

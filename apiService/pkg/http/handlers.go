@@ -14,3 +14,9 @@ func WriteJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.WriteHeader(code)
 	w.Write(b)
 }
+
+func CheckError(statusCode int, err error) {
+	if err != nil {
+		Abort(statusCode, err)
+	}
+}

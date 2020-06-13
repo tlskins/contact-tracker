@@ -12,12 +12,12 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 
 	l "github.com/contact-tracker/apiService/pkg/lambda"
-	"github.com/contact-tracker/apiService/users"
-	t "github.com/contact-tracker/apiService/users/types"
+	"github.com/contact-tracker/apiService/places"
+	t "github.com/contact-tracker/apiService/places/types"
 )
 
 type handler struct {
-	usecase users.UserService
+	usecase places.PlaceService
 }
 
 func (handler handler) router() func(context.Context, l.Request) (l.Response, error) {
@@ -58,59 +58,59 @@ func (handler handler) router() func(context.Context, l.Request) (l.Response, er
 	}
 }
 
-// Get a single user
+// Get a single place
 func (h *handler) Get(ctx context.Context, id string) (l.Response, error) {
-	user, err := h.usecase.Get(ctx, id)
+	place, err := h.usecase.Get(ctx, id)
 	if err != nil {
 		return l.Fail(err, http.StatusInternalServerError)
 	}
 
-	return l.Success(user, http.StatusOK)
+	return l.Success(place, http.StatusOK)
 }
 
-// GetAll users
+// GetAll places
 func (h *handler) GetAll(ctx context.Context) (l.Response, error) {
-	users, err := h.usecase.GetAll(ctx)
+	places, err := h.usecase.GetAll(ctx)
 	if err != nil {
 		return l.Fail(err, http.StatusInternalServerError)
 	}
 
-	return l.Success(users, http.StatusOK)
+	return l.Success(places, http.StatusOK)
 }
 
-// Update a single user
+// Update a single place
 func (h *handler) Update(ctx context.Context, id string, body []byte) (l.Response, error) {
-	updateUser := &t.UpdateUser{}
-	if err := json.Unmarshal(body, &updateUser); err != nil {
+	updatePlace := &t.UpdatePlace{}
+	if err := json.Unmarshal(body, &updatePlace); err != nil {
 		return l.Fail(err, http.StatusInternalServerError)
 	}
 
-	var user *t.User
+	var place *t.Place
 	var err error
-	if user, err = h.usecase.Update(ctx, updateUser); err != nil {
+	if place, err = h.usecase.Update(ctx, updatePlace); err != nil {
 		return l.Fail(err, http.StatusInternalServerError)
 	}
 
-	return l.Success(user, http.StatusOK)
+	return l.Success(place, http.StatusOK)
 }
 
-// Create a user
+// Create a place
 func (h *handler) Create(ctx context.Context, body []byte) (l.Response, error) {
-	user := &t.User{}
-	if err := json.Unmarshal(body, &user); err != nil {
+	place := &t.Place{}
+	if err := json.Unmarshal(body, &place); err != nil {
 		return l.Fail(err, http.StatusInternalServerError)
 	}
 
-	var resp *t.User
+	var resp *t.Place
 	var err error
-	if resp, err = h.usecase.Create(ctx, user); err != nil {
+	if resp, err = h.usecase.Create(ctx, place); err != nil {
 		return l.Fail(err, http.StatusInternalServerError)
 	}
 
 	return l.Success(resp, http.StatusCreated)
 }
 
-// Delete a user
+// Delete a place
 func (h *handler) Delete(ctx context.Context, id string) (l.Response, error) {
 	if err := h.usecase.Delete(ctx, id); err != nil {
 		return l.Fail(err, http.StatusInternalServerError)
@@ -122,8 +122,8 @@ func (h *handler) Delete(ctx context.Context, id string) (l.Response, error) {
 }
 
 func main() {
-	fmt.Println("Starting user lambda main...")
-	usecase, err := users.Init()
+	fmt.Println("Starting place lambda main...")
+	usecase, err := places.InitMongoService()
 	if err != nil {
 		log.Panic(err)
 	}

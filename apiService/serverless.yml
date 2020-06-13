@@ -75,6 +75,22 @@ functions:
           path: /users/{id}
           method: ANY
           cors: true
+  places:
+    handler: bin/places
+    environment:
+      MONGO_DB_NAME: ${self:custom.secrets.MONGO_DB_NAME}
+      MONGO_HOST: ${self:custom.secrets.MONGO_HOST}
+      MONGO_USER: ${self:custom.secrets.MONGO_USER}
+      MONGO_PWD: ${self:custom.secrets.MONGO_PWD}
+    events:
+      - http:
+          path: /places
+          method: ANY
+          cors: true
+      - http:
+          path: /places/{id}
+          method: ANY
+          cors: true
 
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events

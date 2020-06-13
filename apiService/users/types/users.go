@@ -2,9 +2,10 @@ package types
 
 // User -
 type User struct {
-	ID    string `bson:"_id" json:"id"`
-	Email string `bson:"em" json:"email" validate:"email,required"`
-	Name  string `bson:"nm" json:"name" validate:"required,gte=1,lte=50"`
+	ID       string     `bson:"_id" json:"id"`
+	Email    string     `bson:"em" json:"email" validate:"email,required"`
+	Name     string     `bson:"nm" json:"name" validate:"required,gte=1,lte=50"`
+	CheckIns []*CheckIn `bson:"chks" json:"checkIns"`
 }
 
 // UpdateUser -

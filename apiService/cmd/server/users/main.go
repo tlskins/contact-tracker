@@ -9,13 +9,13 @@ import (
 )
 
 func main() {
-	port := os.Getenv("PORT")
+	port := os.Getenv("USERS_PORT")
 
 	router, err := transport.Routes()
 	if err != nil {
 		log.Panic(err)
 	}
 
-	log.Println("Running on port: ", port)
+	log.Println("Running users on port: ", port)
 	log.Panic(http.ListenAndServe(":"+port, router))
 }

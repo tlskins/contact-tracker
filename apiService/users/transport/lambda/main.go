@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
@@ -42,6 +43,9 @@ func (handler handler) router() func(context.Context, l.Request) (l.Response, er
 			id, ok := req.PathParameters["id"]
 			if !ok {
 				return l.Response{}, errors.New("id parameter missing")
+			}
+			if strings.HasSuffix(req.Path, "/check_in") {
+				return handler.CheckIn(ctx, id, []byte(req.Body))
 			}
 			return handler.Update(ctx, id, []byte(req.Body))
 
@@ -85,9 +89,23 @@ func (h *handler) Update(ctx context.Context, id string, body []byte) (l.Respons
 		return l.Fail(err, http.StatusInternalServerError)
 	}
 
-	var user *t.User
-	var err error
-	if user, err = h.usecase.Update(ctx, updateUser); err != nil {
+	user, err := h.usecase.Update(ctx, updateUser)
+	if err != nil {
+		return l.Fail(err, http.StatusInternalServerError)
+	}
+
+	return l.Success(user, http.StatusOK)
+}
+
+// CheckIn a single user
+func (h *handler) CheckIn(ctx context.Context, id string, body []byte) (l.Response, error) {
+	req := &t.CheckInReq{}
+	if err := json.Unmarshal(body, &req); err != nil {
+		return l.Fail(err, http.StatusInternalServerError)
+	}
+
+	user, err := h.usecase.CheckIn(ctx, id, req)
+	if err != nil {
 		return l.Fail(err, http.StatusInternalServerError)
 	}
 

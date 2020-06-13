@@ -17,12 +17,12 @@ service: apiservice
 #org: your-org-name
 
 custom:
-  secrets: ${file(config.dev.yml)}
+  secrets: ${file(config.prod.yml)}
 
 # You can pin your service to only deploy with a specific Serverless version
 # Check out our docs for more details
 # frameworkVersion: "=X.X.X"
-frameworkVersion: '>=1.28.0 <2.0.0'
+frameworkVersion: ">=1.28.0 <2.0.0"
 
 provider:
   name: aws
@@ -66,6 +66,7 @@ functions:
       MONGO_HOST: ${self:custom.secrets.MONGO_HOST}
       MONGO_USER: ${self:custom.secrets.MONGO_USER}
       MONGO_PWD: ${self:custom.secrets.MONGO_PWD}
+      PLACES_HOST: ${self:custom.secrets.PLACES_HOST}
     events:
       - http:
           path: /users
@@ -75,6 +76,10 @@ functions:
           path: /users/{id}
           method: ANY
           cors: true
+      - http:
+          path: /users/{id}/check_in
+          method: PUT
+          cors: true
   places:
     handler: bin/places
     environment:
@@ -82,6 +87,7 @@ functions:
       MONGO_HOST: ${self:custom.secrets.MONGO_HOST}
       MONGO_USER: ${self:custom.secrets.MONGO_USER}
       MONGO_PWD: ${self:custom.secrets.MONGO_PWD}
+      USERS_HOST: ${self:custom.secrets.USERS_HOST}
     events:
       - http:
           path: /places
@@ -91,7 +97,6 @@ functions:
           path: /places/{id}
           method: ANY
           cors: true
-
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
 #    Check the event documentation for details

@@ -38,9 +38,7 @@ func Init() (UserService, error) {
 	mongoHost := os.Getenv("MONGO_HOST")
 	mongoUser := os.Getenv("MONGO_USER")
 	mongoPwd := os.Getenv("MONGO_PWD")
-	pHost := os.Getenv("PLACES_HOST")
-	pPort := os.Getenv("PLACES_PORT")
-	placesHost := fmt.Sprintf("%s:%s", pHost, pPort)
+	placesHost := os.Getenv("PLACES_HOST")
 	fmt.Printf("Configs: %s %s %s %s %s\n\n", mongoDBName, mongoHost, mongoUser, mongoPwd, placesHost)
 
 	repository, err := initMongoRepo(mongoDBName, mongoHost, mongoUser, mongoPwd)

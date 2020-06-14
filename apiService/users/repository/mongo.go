@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/globalsign/mgo"
 	"github.com/google/uuid"
@@ -67,6 +68,15 @@ func (r *MongoUserRepository) CheckIn(_ context.Context, id string, chk *t.Check
 		"$each": []interface{}{chk},
 		"$sort": m.M{"in": -1},
 	}}})
+	return &resp, err
+}
+
+func (r *MongoUserRepository) CheckOut(_ context.Context, id, chkID string, out *time.Time) (*t.User, error) {
+	sess, c := r.C(ColUsers)
+	defer sess.Close()
+
+	var resp t.User
+	err := m.Update(c, &resp, m.M{"_id": id, "chks.id": chkID}, m.M{"$set": m.M{"chks.$.out": out}})
 	return &resp, err
 }
 

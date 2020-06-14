@@ -10,6 +10,6 @@ type CheckInReq struct {
 
 // CheckOutReq - request to check out user at place
 type CheckOutReq struct {
-	PlaceID string     `json:"placeId" validate:"required"`
-	Out     *time.Time `json:"out" validate:"required"`
+	CheckInID string     `json:"checkInId" validate:"required"`
+	Out       *time.Time `json:"out" validate:"required"`
 }

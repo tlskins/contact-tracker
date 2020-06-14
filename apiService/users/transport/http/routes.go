@@ -129,6 +129,36 @@ func (d *handler) CheckIn(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+func (d *handler) CheckOut(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
+	defer cancel()
+
+	decoder := json.NewDecoder(r.Body)
+	req := &t.CheckOutReq{}
+	if err := decoder.Decode(&req); err != nil {
+		writeErr(w, err)
+		return
+	}
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	usr, err := d.usecase.CheckOut(ctx, id, req)
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+
+	data, err := json.Marshal(usr)
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
 func (d *handler) Create(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
 	defer cancel()
@@ -188,6 +218,7 @@ func Routes() (*mux.Router, error) {
 	r.HandleFunc("/users/{id}", h.Get).Methods("GET")
 	r.HandleFunc("/users/{id}", h.Update).Methods("PUT")
 	r.HandleFunc("/users/{id}/check_in", h.CheckIn).Methods("PUT")
+	r.HandleFunc("/users/{id}/check_out", h.CheckOut).Methods("PUT")
 	r.HandleFunc("/users/{id}", h.Delete).Methods("DELETE")
 
 	return r, nil

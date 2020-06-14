@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"time"
 
 	pT "github.com/contact-tracker/apiService/places/types"
 	t "github.com/contact-tracker/apiService/users/types"
@@ -20,6 +21,7 @@ type repository interface {
 	GetAll(ctx context.Context) ([]*t.User, error)
 	Update(ctx context.Context, user *t.UpdateUser) (*t.User, error)
 	CheckIn(ctx context.Context, id string, chk *t.CheckIn) (*t.User, error)
+	CheckOut(ctx context.Context, id, chkID string, out *time.Time) (*t.User, error)
 	Create(ctx context.Context, user *t.User) (*t.User, error)
 	Delete(ctx context.Context, id string) error
 }
@@ -84,6 +86,20 @@ func (u *Usecase) CheckIn(ctx context.Context, id string, req *t.CheckInReq) (re
 
 	if resp, err = u.Repository.CheckIn(ctx, id, chk); err != nil {
 		return nil, errors.Wrap(err, "error checking in user")
+	}
+	return resp, nil
+}
+
+// CheckOut a single user
+func (u *Usecase) CheckOut(ctx context.Context, id string, req *t.CheckOutReq) (resp *t.User, err error) {
+	validate = validator.New()
+	if err = validate.Struct(req); err != nil {
+		validationErrors := err.(validator.ValidationErrors)
+		return nil, validationErrors
+	}
+
+	if resp, err = u.Repository.CheckOut(ctx, id, req.CheckInID, req.Out); err != nil {
+		return nil, errors.Wrap(err, "error checking out user")
 	}
 	return resp, nil
 }

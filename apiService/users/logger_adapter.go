@@ -60,6 +60,16 @@ func (a *LoggerAdapter) CheckIn(ctx context.Context, id string, req *t.CheckInRe
 	return resp, err
 }
 
+// CheckOut a single user
+func (a *LoggerAdapter) CheckOut(ctx context.Context, id string, req *t.CheckOutReq) (*t.User, error) {
+	defer a.Logger.Sync()
+	a.Logger.With(zap.String("id", id))
+	a.Logger.Info("checkout a single user")
+	resp, err := a.Usecase.CheckOut(ctx, id, req)
+	a.logErr(err)
+	return resp, err
+}
+
 // Create a single user
 func (a *LoggerAdapter) Create(ctx context.Context, user *t.User) (*t.User, error) {
 	defer a.Logger.Sync()

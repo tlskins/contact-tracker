@@ -22,6 +22,7 @@ type UserService interface {
 	GetAll(ctx context.Context) ([]*t.User, error)
 	Update(ctx context.Context, user *t.UpdateUser) (*t.User, error)
 	CheckIn(ctx context.Context, id string, chk *t.CheckInReq) (*t.User, error)
+	CheckOut(ctx context.Context, id string, req *t.CheckOutReq) (*t.User, error)
 	Create(ctx context.Context, user *t.User) (*t.User, error)
 	Delete(ctx context.Context, id string) error
 }

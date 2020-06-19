@@ -2,8 +2,8 @@
 
 build:
 	export GO111MODULE=on
-	env GOOS=linux go build -ldflags="-s -w" -o bin/users users/transport/lambda/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/places places/transport/lambda/main.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/users users/deliveries/lambda/main.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/places places/deliveries/lambda/main.go
 
 clean:
 	rm -rf ./bin ./vendor

@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"os"
 
-	transport "github.com/contact-tracker/apiService/places/transport/http"
+	d "github.com/contact-tracker/apiService/places/deliveries/http"
 )
 
 func main() {
 	port := os.Getenv("PLACES_PORT")
 
-	router, err := transport.Routes()
+	router, err := d.Routes()
 	if err != nil {
 		log.Panic(err)
 	}

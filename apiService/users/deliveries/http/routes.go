@@ -2,16 +2,16 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
 
+	api "github.com/contact-tracker/apiService/pkg/http"
 	"github.com/contact-tracker/apiService/users"
 	t "github.com/contact-tracker/apiService/users/types"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 )
 
 const fiveSecondsTimeout = time.Second * 5
@@ -20,32 +20,14 @@ type handler struct {
 	usecase users.UserService
 }
 
-func writeErr(w http.ResponseWriter, err error) {
-	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte(err.Error()))
-}
-
 func (d *handler) Get(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
 	defer cancel()
 
-	vars := mux.Vars(r)
-	id := vars["id"]
-
+	id := chi.URLParam(r, "id")
 	user, err := d.usecase.Get(ctx, id)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	data, err := json.Marshal(user)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	api.CheckError(http.StatusInternalServerError, err)
+	api.WriteJSON(w, http.StatusOK, user)
 }
 
 func (d *handler) GetAll(w http.ResponseWriter, r *http.Request) {
@@ -53,158 +35,86 @@ func (d *handler) GetAll(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	users, err := d.usecase.GetAll(ctx)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	data, err := json.Marshal(users)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	api.CheckError(http.StatusInternalServerError, err)
+	api.WriteJSON(w, http.StatusOK, users)
 }
 
 func (d *handler) Update(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
 	defer cancel()
 
-	decoder := json.NewDecoder(r.Body)
-	user := &t.UpdateUser{}
-	if err := decoder.Decode(&user); err != nil {
-		writeErr(w, err)
-		return
-	}
+	req := &t.UpdateUser{}
+	api.ParseHTTPParams(r, req)
 
-	vars := mux.Vars(r)
-	user.ID = vars["id"]
+	req.ID = chi.URLParam(r, "id")
+	resp, err := d.usecase.Update(ctx, req)
+	api.CheckError(http.StatusInternalServerError, err)
+	api.WriteJSON(w, http.StatusOK, resp)
+}
 
-	var err error
-	var usr *t.User
-	if usr, err = d.usecase.Update(ctx, user); err != nil {
-		writeErr(w, err)
-		return
-	}
+func (d *handler) SignIn(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
+	defer cancel()
 
-	data, err := json.Marshal(usr)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
+	req := &t.SignInReq{}
+	api.ParseHTTPParams(r, req)
 
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	usr, err := d.usecase.SignIn(ctx, req)
+	api.CheckError(http.StatusInternalServerError, err)
+	api.WriteJSON(w, http.StatusOK, usr)
 }
 
 func (d *handler) CheckIn(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
 	defer cancel()
 
-	decoder := json.NewDecoder(r.Body)
 	req := &t.CheckInReq{}
-	if err := decoder.Decode(&req); err != nil {
-		writeErr(w, err)
-		return
-	}
+	api.ParseHTTPParams(r, req)
 
-	vars := mux.Vars(r)
-	id := vars["id"]
-
+	id := chi.URLParam(r, "id")
 	usr, err := d.usecase.CheckIn(ctx, id, req)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	data, err := json.Marshal(usr)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	api.CheckError(http.StatusInternalServerError, err)
+	api.WriteJSON(w, http.StatusOK, usr)
 }
 
 func (d *handler) CheckOut(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
 	defer cancel()
 
-	decoder := json.NewDecoder(r.Body)
 	req := &t.CheckOutReq{}
-	if err := decoder.Decode(&req); err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	vars := mux.Vars(r)
-	id := vars["id"]
+	api.ParseHTTPParams(r, req)
+	id := chi.URLParam(r, "id")
 
 	usr, err := d.usecase.CheckOut(ctx, id, req)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	data, err := json.Marshal(usr)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	api.CheckError(http.StatusInternalServerError, err)
+	api.WriteJSON(w, http.StatusOK, usr)
 }
 
 func (d *handler) Create(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
 	defer cancel()
 
-	user := &t.User{}
-	var err error
-	decoder := json.NewDecoder(r.Body)
-	if err = decoder.Decode(&user); err != nil {
-		writeErr(w, err)
-		return
-	}
+	req := &t.CreateUser{}
+	api.ParseHTTPParams(r, req)
 
-	var resp *t.User
-	if resp, err = d.usecase.Create(ctx, user); err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	data, err := json.Marshal(resp)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	resp, err := d.usecase.Create(ctx, req)
+	api.CheckError(http.StatusInternalServerError, err)
+	api.WriteJSON(w, http.StatusOK, resp)
 }
 
 func (d *handler) Delete(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
 	defer cancel()
 
-	vars := mux.Vars(r)
-	id := vars["id"]
+	id := chi.URLParam(r, "id")
 
-	if err := d.usecase.Delete(ctx, id); err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-	w.Write([]byte("Deleted"))
+	err := d.usecase.Delete(ctx, id)
+	api.CheckError(http.StatusInternalServerError, err)
+	api.WriteJSON(w, http.StatusOK, nil)
 }
 
 // Routes -
-func Routes() (*mux.Router, error) {
+func Routes() (*chi.Mux, error) {
 	fmt.Println("Starting user http routes...")
 	usecase, err := users.Init()
 	if err != nil {
@@ -212,14 +122,16 @@ func Routes() (*mux.Router, error) {
 	}
 
 	h := &handler{usecase}
-	r := mux.NewRouter()
-	r.HandleFunc("/users", h.Create).Methods("POST")
-	r.HandleFunc("/users", h.GetAll).Methods("GET")
-	r.HandleFunc("/users/{id}", h.Get).Methods("GET")
-	r.HandleFunc("/users/{id}", h.Update).Methods("PUT")
-	r.HandleFunc("/users/{id}/check_in", h.CheckIn).Methods("PUT")
-	r.HandleFunc("/users/{id}/check_out", h.CheckOut).Methods("PUT")
-	r.HandleFunc("/users/{id}", h.Delete).Methods("DELETE")
+	r := api.NewRouter()
+
+	r.Post("/users", h.Create)
+	r.Get("/users", h.GetAll)
+	r.Get("/users/{id}", h.Get)
+	r.Put("/users/{id}", h.Update)
+	r.Put("/users/{id}/check_in", h.CheckIn)
+	r.Put("/users/{id}/check_out", h.CheckOut)
+	r.Delete("/users/{id}", h.Delete)
+	r.Post("/users/login", h.SignIn)
 
 	return r, nil
 }

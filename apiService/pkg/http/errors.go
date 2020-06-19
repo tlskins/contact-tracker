@@ -2,6 +2,9 @@ package http
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"runtime/debug"
 )
 
 type Error struct {
@@ -26,4 +29,24 @@ func (e Error) String() string {
 // @param err of type []byte, string, error, or json serializable object
 func Abort(code int, err interface{}) {
 	panic(Error{code, err})
+}
+
+func CheckError(statusCode int, err error) {
+	if err != nil {
+		Abort(statusCode, err)
+	}
+}
+
+func HandleError(w http.ResponseWriter) {
+	if r := recover(); r != nil {
+		fmt.Println(r)
+		debug.PrintStack()
+		if err, ok := r.(Error); ok {
+			WriteJSON(w, err.Code, map[string]interface{}{"message": err.String()})
+		} else if err, ok := r.(error); ok {
+			WriteJSON(w, http.StatusInternalServerError, map[string]interface{}{"message": err.Error()})
+		} else {
+			WriteJSON(w, http.StatusInternalServerError, map[string]interface{}{"message": "unknown error"})
+		}
+	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/contact-tracker/apiService/pkg/auth"
 	pT "github.com/contact-tracker/apiService/places/types"
 	t "github.com/contact-tracker/apiService/users/types"
 
@@ -20,6 +21,7 @@ type repository interface {
 	Get(ctx context.Context, id string) (*t.User, error)
 	GetAll(ctx context.Context) ([]*t.User, error)
 	Update(ctx context.Context, user *t.UpdateUser) (*t.User, error)
+	FindByEmail(ctx context.Context, email string) (*t.User, error)
 	CheckIn(ctx context.Context, id string, chk *t.CheckIn) (*t.User, error)
 	CheckOut(ctx context.Context, id, chkID string, out *time.Time) (*t.User, error)
 	Create(ctx context.Context, user *t.User) (*t.User, error)
@@ -68,6 +70,30 @@ func (u *Usecase) Update(ctx context.Context, user *t.UpdateUser) (resp *t.User,
 	return resp, nil
 }
 
+// Sign in
+func (u *Usecase) SignIn(ctx context.Context, req *t.SignInReq) (resp *t.User, err error) {
+	validate = validator.New()
+	if err = validate.Struct(req); err != nil {
+		validationErrors := err.(validator.ValidationErrors)
+		return nil, validationErrors
+	}
+
+	user, err := u.Repository.FindByEmail(ctx, req.Email)
+	if err != nil {
+		return nil, errors.Wrap(err, "error finding user by email")
+	}
+
+	if err = auth.ValidateCredentials(user.EncryptedPassword, req.Password); err != nil {
+		return nil, errors.Wrap(err, "error validating credentials")
+	}
+
+	now := time.Now()
+	if resp, err = u.Repository.Update(ctx, &t.UpdateUser{LastLoggedIn: &now}); err != nil {
+		return nil, errors.Wrap(err, "error updating user")
+	}
+	return resp, nil
+}
+
 // CheckIn a single user
 func (u *Usecase) CheckIn(ctx context.Context, id string, req *t.CheckInReq) (resp *t.User, err error) {
 	validate = validator.New()
@@ -105,14 +131,18 @@ func (u *Usecase) CheckOut(ctx context.Context, id string, req *t.CheckOutReq) (
 }
 
 // Create a single user
-func (u *Usecase) Create(ctx context.Context, user *t.User) (resp *t.User, err error) {
+func (u *Usecase) Create(ctx context.Context, req *t.CreateUser) (resp *t.User, err error) {
 	validate = validator.New()
-	if err := validate.Struct(*user); err != nil {
+	if err := validate.Struct(*req); err != nil {
 		validationErrors := err.(validator.ValidationErrors)
 		return nil, validationErrors
 	}
 
-	user.ID = u.newID()
+	user, err := req.ToUser(u.newID())
+	if err != nil {
+		return nil, err
+	}
+
 	if resp, err = u.Repository.Create(ctx, user); err != nil {
 		return nil, errors.Wrap(err, "error creating new user")
 	}

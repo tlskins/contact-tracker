@@ -42,6 +42,14 @@ func (r *MongoUserRepository) Get(_ context.Context, id string) (resp *t.User, e
 	return
 }
 
+func (r *MongoUserRepository) FindByEmail(_ context.Context, email string) (resp *t.User, err error) {
+	sess, c := r.C(ColUsers)
+	defer sess.Close()
+
+	err = m.FindOne(c, &resp, m.M{"em": email})
+	return
+}
+
 func (r *MongoUserRepository) GetAll(_ context.Context) (resp []*t.User, err error) {
 	sess, c := r.C(ColUsers)
 	defer sess.Close()

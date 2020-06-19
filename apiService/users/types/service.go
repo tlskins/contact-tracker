@@ -13,3 +13,9 @@ type CheckOutReq struct {
 	CheckInID string     `json:"checkInId" validate:"required"`
 	Out       *time.Time `json:"out" validate:"required"`
 }
+
+// SignInReq - request to check in user at place
+type SignInReq struct {
+	Email    string `json:"email" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}

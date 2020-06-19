@@ -50,6 +50,16 @@ func (a *LoggerAdapter) Update(ctx context.Context, user *t.UpdateUser) (*t.User
 	return resp, err
 }
 
+// Sign in a single user
+func (a *LoggerAdapter) SignIn(ctx context.Context, req *t.SignInReq) (*t.User, error) {
+	defer a.Logger.Sync()
+	a.Logger.With(zap.String("email", req.Email))
+	a.Logger.Info("sign in a single user")
+	resp, err := a.Usecase.SignIn(ctx, req)
+	a.logErr(err)
+	return resp, err
+}
+
 // CheckIn a single user
 func (a *LoggerAdapter) CheckIn(ctx context.Context, id string, req *t.CheckInReq) (*t.User, error) {
 	defer a.Logger.Sync()
@@ -71,10 +81,10 @@ func (a *LoggerAdapter) CheckOut(ctx context.Context, id string, req *t.CheckOut
 }
 
 // Create a single user
-func (a *LoggerAdapter) Create(ctx context.Context, user *t.User) (*t.User, error) {
+func (a *LoggerAdapter) Create(ctx context.Context, req *t.CreateUser) (*t.User, error) {
 	defer a.Logger.Sync()
 	a.Logger.Info("creating a single user")
-	usr, err := a.Usecase.Create(ctx, user)
+	usr, err := a.Usecase.Create(ctx, req)
 	a.logErr(err)
 	return usr, err
 }

@@ -24,3 +24,5 @@ vendor
 config.*
 *main
 *.code-workspace
+apiService/id_rsa
+apiService/id_rsa.pub

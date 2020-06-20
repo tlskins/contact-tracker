@@ -36,6 +36,7 @@ type rpc interface {
 type Usecase struct {
 	Repository repository
 	RPC        rpc
+	JWT        *auth.JWTService
 }
 
 // Get a single user
@@ -49,6 +50,8 @@ func (u *Usecase) Get(ctx context.Context, id string) (*t.User, error) {
 
 // GetAll gets all users
 func (u *Usecase) GetAll(ctx context.Context) ([]*t.User, error) {
+	claims := ctx.Value(auth.AccessTokenKey).(auth.CustomClaims)
+
 	users, err := u.Repository.GetAll(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "error fetching all users")
@@ -71,27 +74,29 @@ func (u *Usecase) Update(ctx context.Context, user *t.UpdateUser) (resp *t.User,
 }
 
 // Sign in
-func (u *Usecase) SignIn(ctx context.Context, req *t.SignInReq) (resp *t.User, err error) {
+func (u *Usecase) SignIn(ctx context.Context, req *t.SignInReq) (resp *t.User, accessToken string, err error) {
 	validate = validator.New()
 	if err = validate.Struct(req); err != nil {
 		validationErrors := err.(validator.ValidationErrors)
-		return nil, validationErrors
+		return nil, "", validationErrors
 	}
 
 	user, err := u.Repository.FindByEmail(ctx, req.Email)
 	if err != nil {
-		return nil, errors.Wrap(err, "error finding user by email")
+		return nil, "", errors.Wrap(err, "error finding user by email")
 	}
 
 	if err = auth.ValidateCredentials(user.EncryptedPassword, req.Password); err != nil {
-		return nil, errors.Wrap(err, "error validating credentials")
+		return nil, "", errors.Wrap(err, "error validating credentials")
 	}
 
 	now := time.Now()
 	if resp, err = u.Repository.Update(ctx, &t.UpdateUser{LastLoggedIn: &now}); err != nil {
-		return nil, errors.Wrap(err, "error updating user")
+		return nil, "", errors.Wrap(err, "error updating user")
 	}
-	return resp, nil
+	accessToken, err = u.JWT.GenAccessToken(user)
+
+	return resp, accessToken, err
 }
 
 // CheckIn a single user
@@ -138,9 +143,10 @@ func (u *Usecase) Create(ctx context.Context, req *t.CreateUser) (resp *t.User, 
 		return nil, validationErrors
 	}
 
-	user, err := req.ToUser(u.newID())
-	if err != nil {
-		return nil, err
+	user := req.ToUser()
+	user.ID = u.newID()
+	if user.EncryptedPassword, err = auth.EncryptPassword(req.Password); err != nil {
+		return nil, errors.Wrap(err, "error encrypting password")
 	}
 
 	if resp, err = u.Repository.Create(ctx, user); err != nil {
@@ -161,4 +167,9 @@ func (u *Usecase) Delete(ctx context.Context, id string) error {
 func (u *Usecase) newID() string {
 	uid := uuid.New()
 	return uid.String()
+}
+
+// Decode token
+func (u *Usecase) Decode(ctx context.Context, tokenStr string) (auth.CustomClaims, error) {
+	return u.JWT.Decode(tokenStr)
 }

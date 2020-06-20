@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/contact-tracker/apiService/pkg/auth"
 	api "github.com/contact-tracker/apiService/pkg/http"
 	"github.com/contact-tracker/apiService/users"
 	t "github.com/contact-tracker/apiService/users/types"
@@ -34,6 +35,22 @@ func (d *handler) GetAll(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
 	defer cancel()
 
+	// AUTH //
+
+	c, err := r.Cookie(auth.AccessTokenKey)
+	if err != nil {
+		if err == http.ErrNoCookie {
+			api.CheckError(http.StatusUnauthorized, fmt.Errorf("Unauthorized access"))
+		}
+		api.CheckError(http.StatusUnauthorized, err)
+	}
+
+	tokenStr := c.Value
+	claims, err := d.usecase.Decode(ctx, tokenStr)
+	ctx = context.WithValue(ctx, auth.AccessTokenKey, claims)
+
+	// AUTH //
+
 	users, err := d.usecase.GetAll(ctx)
 	api.CheckError(http.StatusInternalServerError, err)
 	api.WriteJSON(w, http.StatusOK, users)
@@ -59,9 +76,16 @@ func (d *handler) SignIn(w http.ResponseWriter, r *http.Request) {
 	req := &t.SignInReq{}
 	api.ParseHTTPParams(r, req)
 
-	usr, err := d.usecase.SignIn(ctx, req)
+	user, accessToken, err := d.usecase.SignIn(ctx, req)
 	api.CheckError(http.StatusInternalServerError, err)
-	api.WriteJSON(w, http.StatusOK, usr)
+
+	http.SetCookie(w, &http.Cookie{
+		Name:  auth.AccessTokenKey,
+		Value: accessToken,
+		// Expires: expirationTime,
+	})
+
+	api.WriteJSON(w, http.StatusOK, user)
 }
 
 func (d *handler) CheckIn(w http.ResponseWriter, r *http.Request) {

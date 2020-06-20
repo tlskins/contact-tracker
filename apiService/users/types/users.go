@@ -2,8 +2,6 @@ package types
 
 import (
 	"time"
-
-	"github.com/contact-tracker/apiService/pkg/auth"
 )
 
 // User -
@@ -15,6 +13,10 @@ type User struct {
 	Confirmed         bool       `bson:"conf" json:"confirmed"`
 	LastLoggedIn      *time.Time `bson:"lstLogIn" json:"lastLoggedIn"`
 	CheckIns          []*CheckIn `bson:"chks" json:"checkIns"`
+}
+
+func (u User) GetAuthables() (id, email string, conf bool) {
+	return u.ID, u.Email, u.Confirmed
 }
 
 // UpdateUser -
@@ -32,15 +34,9 @@ type CreateUser struct {
 	Password string `json:"password" validate:"gte=3,lte=50"`
 }
 
-func (c CreateUser) ToUser(newID string) (*User, error) {
-	encPwd, err := auth.EncryptPassword(c.Password)
-	if err != nil {
-		return nil, err
-	}
+func (c CreateUser) ToUser() *User {
 	return &User{
-		ID:                newID,
-		Email:             c.Email,
-		Name:              c.Name,
-		EncryptedPassword: encPwd,
-	}, nil
+		Email: c.Email,
+		Name:  c.Name,
+	}
 }

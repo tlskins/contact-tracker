@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/contact-tracker/apiService/pkg/auth"
+	"github.com/contact-tracker/apiService/pkg/email"
 	pT "github.com/contact-tracker/apiService/places/types"
 	t "github.com/contact-tracker/apiService/users/types"
 
@@ -36,6 +37,7 @@ type rpc interface {
 type Usecase struct {
 	Repository repository
 	RPC        rpc
+	Email      email.EmailService
 }
 
 // Get a single user
@@ -147,6 +149,10 @@ func (u *Usecase) Create(ctx context.Context, req *t.CreateUser) (resp *t.User, 
 
 	if resp, err = u.Repository.Create(ctx, user); err != nil {
 		return nil, errors.Wrap(err, "error creating new user")
+	}
+
+	if err := u.Email.Client.SendEmail(t.WelcomeEmailInput(user)); err != nil {
+		return nil, err
 	}
 
 	return resp, nil

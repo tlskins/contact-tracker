@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/contact-tracker/apiService/pkg/auth"
+	"github.com/contact-tracker/apiService/pkg/email"
 	m "github.com/contact-tracker/apiService/pkg/mongo"
 	repo "github.com/contact-tracker/apiService/users/repository"
 	usrRpc "github.com/contact-tracker/apiService/users/rpc"
@@ -45,6 +46,10 @@ func Init() (UserService, *auth.JWTService, error) {
 	placesHost := os.Getenv("PLACES_HOST")
 	jwtKeyPath := os.Getenv("JWT_KEY_PATH")
 	jwtSecretPath := os.Getenv("JWT_SECRET_PATH")
+	sesAccessKey := os.Getenv("AWS_SES_ACCESS_KEY")
+	sesAccessSecret := os.Getenv("AWS_SES_ACCESS_SECRET")
+	sesRegion := os.Getenv("AWS_SES_REGION")
+	senderEmail := os.Getenv("SENDER_EMAIL")
 
 	// Init mongo repo
 	mc, err := m.NewClient(mongoHost, mongoUser, mongoPwd)
@@ -70,6 +75,12 @@ func Init() (UserService, *auth.JWTService, error) {
 		log.Fatalf("Error creating jwt service: %v\n", err)
 	}
 
+	// Init email
+	emailSvc, err := email.Init(sesRegion, sesAccessKey, sesAccessSecret, senderEmail)
+	if err != nil {
+		log.Fatalf("Error starting email svc: %v\n", err)
+	}
+
 	// Init logger
 	logger, _ := zap.NewProduction()
 
@@ -78,6 +89,7 @@ func Init() (UserService, *auth.JWTService, error) {
 		Usecase: &Usecase{
 			Repository: repository,
 			RPC:        rpcClient,
+			Email:      *emailSvc,
 		},
 	}
 	return usecase, j, nil

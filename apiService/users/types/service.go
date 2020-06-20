@@ -1,6 +1,11 @@
 package types
 
-import "time"
+import (
+	"fmt"
+	"time"
+
+	"github.com/contact-tracker/apiService/pkg/email"
+)
 
 // CheckInReq - request to check in user at place
 type CheckInReq struct {
@@ -18,4 +23,15 @@ type CheckOutReq struct {
 type SignInReq struct {
 	Email    string `json:"email" validate:"required"`
 	Password string `json:"password" validate:"required"`
+}
+
+func WelcomeEmailInput(user *User) *email.EmailInput {
+	body := fmt.Sprintf("Welcome to contract tracker %s!\n\nPlease follow this link to confirm your email: %s", user.Name, "confirmation_link")
+
+	return &email.EmailInput{
+		ToAddresses: []*string{&user.Email},
+		HtmlBody:    body,
+		TextBody:    body,
+		Subject:     "Welcome to contract tracker!",
+	}
 }

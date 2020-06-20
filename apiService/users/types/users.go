@@ -25,6 +25,7 @@ type UpdateUser struct {
 	Email        *string    `bson:"em,omitempty" json:"email,omitempty"`
 	Name         *string    `bson:"nm,omitempty" json:"name,omitempty" validate:"gte=1,lte=50"`
 	LastLoggedIn *time.Time `bson:"lstLogIn,omitempty" json:"-"`
+	Confirmed    *bool      `bson:"conf,omitempty" json:"-"`
 }
 
 // CreateUser -

@@ -29,6 +29,7 @@ type UserService interface {
 	CheckOut(ctx context.Context, id string, req *t.CheckOutReq) (*t.User, error)
 	Create(ctx context.Context, user *t.CreateUser) (*t.User, error)
 	Delete(ctx context.Context, id string) error
+	Confirm(ctx context.Context, id string) error
 }
 
 // Init sets up an instance of this domains
@@ -43,6 +44,7 @@ func Init() (UserService, *auth.JWTService, error) {
 	mongoHost := os.Getenv("MONGO_HOST")
 	mongoUser := os.Getenv("MONGO_USER")
 	mongoPwd := os.Getenv("MONGO_PWD")
+	usersHost := os.Getenv("USERS_HOST")
 	placesHost := os.Getenv("PLACES_HOST")
 	jwtKeyPath := os.Getenv("JWT_KEY_PATH")
 	jwtSecretPath := os.Getenv("JWT_SECRET_PATH")
@@ -76,7 +78,7 @@ func Init() (UserService, *auth.JWTService, error) {
 	}
 
 	// Init email
-	emailSvc, err := email.Init(sesRegion, sesAccessKey, sesAccessSecret, senderEmail)
+	emailClient, err := email.Init(sesRegion, sesAccessKey, sesAccessSecret, senderEmail, usersHost)
 	if err != nil {
 		log.Fatalf("Error starting email svc: %v\n", err)
 	}
@@ -89,7 +91,7 @@ func Init() (UserService, *auth.JWTService, error) {
 		Usecase: &Usecase{
 			Repository: repository,
 			RPC:        rpcClient,
-			Email:      *emailSvc,
+			Email:      emailClient,
 		},
 	}
 	return usecase, j, nil

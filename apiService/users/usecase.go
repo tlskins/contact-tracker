@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/contact-tracker/apiService/pkg/auth"
@@ -151,7 +152,7 @@ func (u *Usecase) Create(ctx context.Context, req *t.CreateUser) (resp *t.User, 
 		return nil, errors.Wrap(err, "error creating new user")
 	}
 
-	if err := u.Email.Client.SendEmail(t.WelcomeEmailInput(user)); err != nil {
+	if err := u.Email.SendEmail(t.WelcomeEmailInput(user, u.Email.UsersHost())); err != nil {
 		return nil, err
 	}
 
@@ -162,6 +163,23 @@ func (u *Usecase) Create(ctx context.Context, req *t.CreateUser) (resp *t.User, 
 func (u *Usecase) Delete(ctx context.Context, id string) error {
 	if err := u.Repository.Delete(ctx, id); err != nil {
 		return errors.Wrap(err, "error deleting user")
+	}
+	return nil
+}
+
+// Confirm a single user
+func (u *Usecase) Confirm(ctx context.Context, id string) error {
+	user, err := u.Repository.Get(ctx, id)
+	if err != nil {
+		errors.Wrap(err, "error getting user for confirmation")
+	}
+	if user.Confirmed {
+		return fmt.Errorf("user already confirmed")
+	}
+
+	c := true
+	if _, err := u.Repository.Update(ctx, &t.UpdateUser{ID: id, Confirmed: &c}); err != nil {
+		return errors.Wrap(err, "error confirming user")
 	}
 	return nil
 }

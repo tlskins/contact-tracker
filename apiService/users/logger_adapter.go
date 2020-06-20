@@ -97,3 +97,12 @@ func (a *LoggerAdapter) Delete(ctx context.Context, id string) error {
 	a.logErr(err)
 	return err
 }
+
+// Confirm a single user
+func (a *LoggerAdapter) Confirm(ctx context.Context, id string) error {
+	defer a.Logger.Sync()
+	a.Logger.Info("deleting a single user")
+	err := a.Usecase.Confirm(ctx, id)
+	a.logErr(err)
+	return err
+}

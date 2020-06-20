@@ -123,6 +123,17 @@ func (d *handler) Delete() http.HandlerFunc {
 	}
 }
 
+func (d *handler) Confirm() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		id := chi.URLParam(r, "id")
+
+		err := d.usecase.Confirm(ctx, id)
+		api.CheckError(http.StatusInternalServerError, err)
+		api.WriteJSON(w, http.StatusOK, nil)
+	}
+}
+
 // Routes -
 func Routes() (*chi.Mux, error) {
 	fmt.Println("Starting user http routes...")
@@ -142,6 +153,7 @@ func Routes() (*chi.Mux, error) {
 	r.Put("/users/{id}/check_out", j.AuthorizeHandler(h.CheckOut()))
 	r.Delete("/users/{id}", j.AuthorizeHandler(h.Delete()))
 	r.Post("/users/login", h.SignIn())
+	r.Get("/users/{id}/confirm", h.Confirm())
 
 	return r, nil
 }

@@ -25,8 +25,9 @@ type SignInReq struct {
 	Password string `json:"password" validate:"required"`
 }
 
-func WelcomeEmailInput(user *User) *email.EmailInput {
-	body := fmt.Sprintf("Welcome to contract tracker %s!\n\nPlease follow this link to confirm your email: %s", user.Name, "confirmation_link")
+func WelcomeEmailInput(user *User, usersHost string) *email.EmailInput {
+	confLink := fmt.Sprintf("%s/users/%s/confirm", usersHost, user.ID)
+	body := fmt.Sprintf("Welcome to contract tracker %s!\n\nPlease follow this link to confirm your email: %s", user.Name, confLink)
 
 	return &email.EmailInput{
 		ToAddresses: []*string{&user.Email},

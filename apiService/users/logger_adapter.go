@@ -5,7 +5,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/contact-tracker/apiService/pkg/auth"
 	t "github.com/contact-tracker/apiService/users/types"
 )
 
@@ -52,13 +51,13 @@ func (a *LoggerAdapter) Update(ctx context.Context, user *t.UpdateUser) (*t.User
 }
 
 // Sign in a single user
-func (a *LoggerAdapter) SignIn(ctx context.Context, req *t.SignInReq) (*t.User, string, error) {
+func (a *LoggerAdapter) SignIn(ctx context.Context, req *t.SignInReq) (*t.User, error) {
 	defer a.Logger.Sync()
 	a.Logger.With(zap.String("email", req.Email))
 	a.Logger.Info("sign in a single user")
-	resp, accessToken, err := a.Usecase.SignIn(ctx, req)
+	resp, err := a.Usecase.SignIn(ctx, req)
 	a.logErr(err)
-	return resp, accessToken, err
+	return resp, err
 }
 
 // CheckIn a single user
@@ -97,13 +96,4 @@ func (a *LoggerAdapter) Delete(ctx context.Context, id string) error {
 	err := a.Usecase.Delete(ctx, id)
 	a.logErr(err)
 	return err
-}
-
-// Decode token
-func (a *LoggerAdapter) Decode(ctx context.Context, tokenStr string) (auth.CustomClaims, error) {
-	defer a.Logger.Sync()
-	a.Logger.Info("decode auth token")
-	claims, err := a.Usecase.Decode(ctx, tokenStr)
-	a.logErr(err)
-	return claims, err
 }

@@ -23,17 +23,16 @@ type UserService interface {
 	Get(ctx context.Context, id string) (*t.User, error)
 	GetAll(ctx context.Context) ([]*t.User, error)
 	Update(ctx context.Context, user *t.UpdateUser) (*t.User, error)
-	SignIn(ctx context.Context, req *t.SignInReq) (*t.User, string, error)
+	SignIn(ctx context.Context, req *t.SignInReq) (*t.User, error)
 	CheckIn(ctx context.Context, id string, chk *t.CheckInReq) (*t.User, error)
 	CheckOut(ctx context.Context, id string, req *t.CheckOutReq) (*t.User, error)
 	Create(ctx context.Context, user *t.CreateUser) (*t.User, error)
 	Delete(ctx context.Context, id string) error
-	Decode(ctx context.Context, tokenStr string) (auth.CustomClaims, error)
 }
 
 // Init sets up an instance of this domains
 // usecase, pre-configured with the dependencies.
-func Init() (UserService, error) {
+func Init() (UserService, *auth.JWTService, error) {
 	fmt.Println("Init Users Mongo Service...")
 	cfgPath := flag.String("config", "config.dev.yml", "path for yaml config")
 	flag.Parse()
@@ -47,13 +46,17 @@ func Init() (UserService, error) {
 	jwtKeyPath := os.Getenv("JWT_KEY_PATH")
 	jwtSecretPath := os.Getenv("JWT_SECRET_PATH")
 
-	repository, err := initMongoRepo(mongoDBName, mongoHost, mongoUser, mongoPwd)
+	// Init mongo repo
+	mc, err := m.NewClient(mongoHost, mongoUser, mongoPwd)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("Error starting mongo client: Error: %v\n", err)
 	}
+	repository := repo.NewMongoUserRepository(mc, mongoDBName)
 
+	// Init rpc client
 	rpcClient := usrRpc.NewHTTPRPCClient(placesHost)
 
+	// Init jwt service
 	jwtKey, err := ioutil.ReadFile(jwtKeyPath)
 	if err != nil {
 		log.Fatalf("Error reading jwt key file path: %s Error: %v\n", jwtKeyPath, err)
@@ -67,6 +70,7 @@ func Init() (UserService, error) {
 		log.Fatalf("Error creating jwt service: %v\n", err)
 	}
 
+	// Init logger
 	logger, _ := zap.NewProduction()
 
 	usecase := &LoggerAdapter{
@@ -74,16 +78,7 @@ func Init() (UserService, error) {
 		Usecase: &Usecase{
 			Repository: repository,
 			RPC:        rpcClient,
-			JWT:        j,
 		},
 	}
-	return usecase, nil
-}
-
-func initMongoRepo(mongoDBName, mongoHost, mongoUser, mongoPwd string) (*repo.MongoUserRepository, error) {
-	mc, err := m.NewClient(mongoHost, mongoUser, mongoPwd)
-	if err != nil {
-		return nil, err
-	}
-	return repo.NewMongoUserRepository(mc, mongoDBName), nil
+	return usecase, j, nil
 }

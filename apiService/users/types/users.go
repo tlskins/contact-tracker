@@ -9,7 +9,7 @@ type User struct {
 	ID                string     `bson:"_id" json:"id"`
 	Email             string     `bson:"em" json:"email" validate:"email,required"`
 	Name              string     `bson:"nm" json:"name" validate:"required,gte=1,lte=50"`
-	EncryptedPassword string     `bson:"pwd" json:"encryptedPassword" validate:"required"`
+	EncryptedPassword string     `bson:"pwd" json:"-"`
 	Confirmed         bool       `bson:"conf" json:"confirmed"`
 	LastLoggedIn      *time.Time `bson:"lstLogIn" json:"lastLoggedIn"`
 	CheckIns          []*CheckIn `bson:"chks" json:"checkIns"`

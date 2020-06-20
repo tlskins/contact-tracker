@@ -3,6 +3,10 @@ package auth
 import (
 	"context"
 	"crypto/rsa"
+	"fmt"
+	"net/http"
+
+	api "github.com/contact-tracker/apiService/pkg/http"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -54,10 +58,30 @@ func (j *JWTService) RefreshExpirationMinutes() int {
 	return j.refreshExpirationMinutes
 }
 
-func AccessTokenFromContext(ctx context.Context) *CustomClaims {
-	return ctx.Value(AccessTokenKey).(*CustomClaims)
+func AccessTokenFromContext(ctx context.Context) CustomClaims {
+	return ctx.Value(AccessTokenKey).(CustomClaims)
 }
 
 func UserIdFromContext(ctx context.Context) string {
 	return AccessTokenFromContext(ctx).Subject
+}
+
+func (j *JWTService) AuthorizeHandler(next http.Handler) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie(AccessTokenKey)
+		if err != nil {
+			if err == http.ErrNoCookie {
+				api.CheckError(http.StatusUnauthorized, fmt.Errorf("Unauthorized access"))
+			}
+			api.CheckError(http.StatusUnauthorized, err)
+		}
+
+		tokenStr := c.Value
+		claims, err := j.Decode(tokenStr)
+		api.CheckError(http.StatusUnauthorized, err)
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, AccessTokenKey, claims)
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

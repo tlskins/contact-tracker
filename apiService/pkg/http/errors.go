@@ -31,7 +31,7 @@ func Abort(code int, err interface{}) {
 	panic(Error{code, err})
 }
 
-func CheckError(statusCode int, err error) {
+func CheckHTTPError(statusCode int, err error) {
 	if err != nil {
 		Abort(statusCode, err)
 	}

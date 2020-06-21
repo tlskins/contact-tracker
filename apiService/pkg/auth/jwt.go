@@ -71,14 +71,14 @@ func (j *JWTService) AuthorizeHandler(next http.Handler) http.HandlerFunc {
 		c, err := r.Cookie(AccessTokenKey)
 		if err != nil {
 			if err == http.ErrNoCookie {
-				api.CheckError(http.StatusUnauthorized, fmt.Errorf("Unauthorized access"))
+				api.CheckHTTPError(http.StatusUnauthorized, fmt.Errorf("Unauthorized access"))
 			}
-			api.CheckError(http.StatusUnauthorized, err)
+			api.CheckHTTPError(http.StatusUnauthorized, err)
 		}
 
 		tokenStr := c.Value
 		claims, err := j.Decode(tokenStr)
-		api.CheckError(http.StatusUnauthorized, err)
+		api.CheckHTTPError(http.StatusUnauthorized, err)
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, AccessTokenKey, claims)
 

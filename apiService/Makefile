@@ -4,6 +4,8 @@ build:
 	export GO111MODULE=on
 	env GOOS=linux go build -ldflags="-s -w" -o bin/users users/deliveries/lambda/main.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/places places/deliveries/lambda/main.go
+	cp ./id_rsa bin/id_rsa
+	cp ./id_rsa.pub bin/id_rsa.pub
 
 clean:
 	rm -rf ./bin ./vendor

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	h "github.com/contact-tracker/apiService/pkg/http"
+	api "github.com/contact-tracker/apiService/pkg/http"
 	pT "github.com/contact-tracker/apiService/places/types"
 )
 
@@ -34,7 +34,7 @@ func NewHTTPRPCClient(placesHostName string) *HTTPRPCClient {
 
 func (c *HTTPRPCClient) GetPlace(ctx context.Context, id string) (*pT.Place, error) {
 	resp, err := c.c.Get(fmt.Sprintf("%s/places/%s", c.placesHostName, id))
-	h.CheckError(resp.StatusCode, err)
+	api.CheckHTTPError(resp.StatusCode, err)
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err

@@ -8,6 +8,7 @@ import (
 
 	"github.com/contact-tracker/apiService/pkg/auth"
 	api "github.com/contact-tracker/apiService/pkg/http"
+
 	"github.com/contact-tracker/apiService/users"
 	t "github.com/contact-tracker/apiService/users/types"
 
@@ -26,7 +27,7 @@ func (d *handler) Get() http.HandlerFunc {
 		ctx := r.Context()
 		id := chi.URLParam(r, "id")
 		user, err := d.usecase.Get(ctx, id)
-		api.CheckError(http.StatusInternalServerError, err)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, user)
 	}
 }
@@ -35,7 +36,7 @@ func (d *handler) GetAll() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		users, err := d.usecase.GetAll(ctx)
-		api.CheckError(http.StatusInternalServerError, err)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, users)
 	}
 }
@@ -48,7 +49,7 @@ func (d *handler) Update() http.HandlerFunc {
 
 		req.ID = chi.URLParam(r, "id")
 		resp, err := d.usecase.Update(ctx, req)
-		api.CheckError(http.StatusInternalServerError, err)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, resp)
 	}
 }
@@ -60,9 +61,9 @@ func (d *handler) SignIn() http.HandlerFunc {
 		api.ParseHTTPParams(r, req)
 
 		user, err := d.usecase.SignIn(ctx, req)
-		api.CheckError(http.StatusInternalServerError, err)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
 		accessToken, err := d.jwt.GenAccessToken(user)
-		api.CheckError(http.StatusInternalServerError, err)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
 
 		http.SetCookie(w, &http.Cookie{
 			Name:  auth.AccessTokenKey,
@@ -82,7 +83,7 @@ func (d *handler) CheckIn() http.HandlerFunc {
 
 		id := chi.URLParam(r, "id")
 		usr, err := d.usecase.CheckIn(ctx, id, req)
-		api.CheckError(http.StatusInternalServerError, err)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, usr)
 	}
 }
@@ -95,7 +96,7 @@ func (d *handler) CheckOut() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 
 		usr, err := d.usecase.CheckOut(ctx, id, req)
-		api.CheckError(http.StatusInternalServerError, err)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, usr)
 	}
 }
@@ -107,7 +108,7 @@ func (d *handler) Create() http.HandlerFunc {
 		api.ParseHTTPParams(r, req)
 
 		resp, err := d.usecase.Create(ctx, req)
-		api.CheckError(http.StatusInternalServerError, err)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, resp)
 	}
 }
@@ -118,7 +119,7 @@ func (d *handler) Delete() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 
 		err := d.usecase.Delete(ctx, id)
-		api.CheckError(http.StatusInternalServerError, err)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, nil)
 	}
 }
@@ -129,7 +130,7 @@ func (d *handler) Confirm() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 
 		err := d.usecase.Confirm(ctx, id)
-		api.CheckError(http.StatusInternalServerError, err)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, nil)
 	}
 }

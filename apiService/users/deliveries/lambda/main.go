@@ -12,37 +12,50 @@ import (
 
 	"github.com/aws/aws-lambda-go/lambda"
 
-	l "github.com/contact-tracker/apiService/pkg/lambda"
+	"github.com/contact-tracker/apiService/pkg/auth"
+	api "github.com/contact-tracker/apiService/pkg/lambda"
 	"github.com/contact-tracker/apiService/users"
 	t "github.com/contact-tracker/apiService/users/types"
 )
 
 type handler struct {
 	usecase users.UserService
+	jwt     *auth.JWTService
 }
 
-func (handler handler) router() func(context.Context, l.Request) (l.Response, error) {
-	return func(ctx context.Context, req l.Request) (l.Response, error) {
+func (handler handler) router() func(context.Context, api.Request) (api.Response, error) {
+	return func(ctx context.Context, req api.Request) (api.Response, error) {
 
 		// Add cancellation deadline to context
 		ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 		defer cancel()
 
-		switch req.HTTPMethod {
-		case "GET":
-			id, ok := req.PathParameters["id"]
-			if !ok {
-				return handler.GetAll(ctx)
+		log.Println("Before router auth...")
+		// Add auth
+		if cookieVal, ok := req.Headers["cookie"]; ok {
+			if claims, err := handler.jwt.Decode(cookieVal); err != nil {
+				log.Printf("decode cookie err: %+v\n", err)
+				return api.Fail(err, http.StatusInternalServerError)
+			} else {
+				ctx = context.WithValue(ctx, auth.AccessTokenKey, claims)
 			}
-			return handler.Get(ctx, id)
+		}
 
+		log.Println("Before MatchesRoute...")
+		if api.MatchesRoute("/users/{id}", "GET", &req) {
+			log.Println("Before handle get...")
+			return handler.Get(ctx, &req)
+		}
+		log.Println("After MatchesRoute...")
+
+		switch req.HTTPMethod {
 		case "POST":
 			return handler.Create(ctx, []byte(req.Body))
 
 		case "PUT":
 			id, ok := req.PathParameters["id"]
 			if !ok {
-				return l.Response{}, errors.New("id parameter missing")
+				return api.Response{}, errors.New("id parameter missing")
 			}
 			if strings.HasSuffix(req.Path, "/check_in") {
 				return handler.CheckIn(ctx, id, []byte(req.Body))
@@ -52,100 +65,93 @@ func (handler handler) router() func(context.Context, l.Request) (l.Response, er
 		case "DELETE":
 			id, ok := req.PathParameters["id"]
 			if !ok {
-				return l.Response{}, errors.New("id parameter missing")
+				return api.Response{}, errors.New("id parameter missing")
 			}
 			return handler.Delete(ctx, id)
 
 		default:
-			return l.Response{}, errors.New("invalid method")
+			return api.Response{}, errors.New("route not found")
 		}
 	}
 }
 
 // Get a single user
-func (h *handler) Get(ctx context.Context, id string) (l.Response, error) {
-	user, err := h.usecase.Get(ctx, id)
-	if err != nil {
-		return l.Fail(err, http.StatusInternalServerError)
+func (h *handler) Get(ctx context.Context, req *api.Request) (resp api.Response, err error) {
+	var id string
+	if id, err = api.GetPathParam("id", req); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
 	}
-
-	return l.Success(user, http.StatusOK)
+	var user *t.User
+	if user, err = h.usecase.Get(ctx, id); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
+	}
+	return api.Success(user, http.StatusOK)
 }
 
 // GetAll users
-func (h *handler) GetAll(ctx context.Context) (l.Response, error) {
-	users, err := h.usecase.GetAll(ctx)
-	if err != nil {
-		return l.Fail(err, http.StatusInternalServerError)
+func (h *handler) GetAll(ctx context.Context) (resp api.Response, err error) {
+	var users []*t.User
+	if users, err = h.usecase.GetAll(ctx); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
 	}
-
-	return l.Success(users, http.StatusOK)
+	return api.Success(users, http.StatusOK)
 }
 
 // Update a single user
-func (h *handler) Update(ctx context.Context, id string, body []byte) (l.Response, error) {
-	updateUser := &t.UpdateUser{}
-	if err := json.Unmarshal(body, &updateUser); err != nil {
-		return l.Fail(err, http.StatusInternalServerError)
+func (h *handler) Update(ctx context.Context, id string, body []byte) (resp api.Response, err error) {
+	var update t.UpdateUser
+	if err := json.Unmarshal(body, &update); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
 	}
-
-	user, err := h.usecase.Update(ctx, updateUser)
-	if err != nil {
-		return l.Fail(err, http.StatusInternalServerError)
+	var user *t.User
+	if user, err = h.usecase.Update(ctx, &update); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
 	}
-
-	return l.Success(user, http.StatusOK)
+	return api.Success(user, http.StatusOK)
 }
 
 // CheckIn a single user
-func (h *handler) CheckIn(ctx context.Context, id string, body []byte) (l.Response, error) {
-	req := &t.CheckInReq{}
+func (h *handler) CheckIn(ctx context.Context, id string, body []byte) (resp api.Response, err error) {
+	var req t.CheckInReq
 	if err := json.Unmarshal(body, &req); err != nil {
-		return l.Fail(err, http.StatusInternalServerError)
+		return api.Fail(err, http.StatusInternalServerError)
 	}
-
-	user, err := h.usecase.CheckIn(ctx, id, req)
-	if err != nil {
-		return l.Fail(err, http.StatusInternalServerError)
+	var user *t.User
+	if user, err = h.usecase.CheckIn(ctx, id, &req); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
 	}
-
-	return l.Success(user, http.StatusOK)
+	return api.Success(user, http.StatusOK)
 }
 
 // Create a user
-func (h *handler) Create(ctx context.Context, body []byte) (l.Response, error) {
-	user := &t.User{}
-	if err := json.Unmarshal(body, &user); err != nil {
-		return l.Fail(err, http.StatusInternalServerError)
+func (h *handler) Create(ctx context.Context, body []byte) (resp api.Response, err error) {
+	var req t.CreateUser
+	if err := json.Unmarshal(body, &req); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
 	}
-
-	var resp *t.User
-	var err error
-	if resp, err = h.usecase.Create(ctx, user); err != nil {
-		return l.Fail(err, http.StatusInternalServerError)
+	var respUser *t.User
+	if respUser, err = h.usecase.Create(ctx, &req); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
 	}
-
-	return l.Success(resp, http.StatusCreated)
+	return api.Success(respUser, http.StatusCreated)
 }
 
 // Delete a user
-func (h *handler) Delete(ctx context.Context, id string) (l.Response, error) {
-	if err := h.usecase.Delete(ctx, id); err != nil {
-		return l.Fail(err, http.StatusInternalServerError)
+func (h *handler) Delete(ctx context.Context, id string) (resp api.Response, err error) {
+	if err = h.usecase.Delete(ctx, id); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
 	}
-
-	return l.Success(map[string]interface{}{
-		"success": true,
-	}, http.StatusNoContent)
+	return api.Success(map[string]interface{}{"success": true}, http.StatusNoContent)
 }
 
 func main() {
 	fmt.Println("Starting user lambda main...")
-	usecase, err := users.Init()
+	usecase, j, err := users.Init()
 	if err != nil {
 		log.Panic(err)
 	}
+	log.Println("After init usecase...")
 
-	h := &handler{usecase}
+	h := &handler{usecase, j}
 	lambda.Start(h.router())
 }

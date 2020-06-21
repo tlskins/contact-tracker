@@ -42,28 +42,36 @@ func Success(data interface{}, status int) (Response, error) {
 	}, nil
 }
 
+func SuccessWithCookie(data interface{}, status int, cookieStr string) (Response, error) {
+	body, err := json.Marshal(data)
+	if err != nil {
+		return Fail(err, http.StatusInternalServerError)
+	}
+
+	return Response{
+		Body:       string(body),
+		StatusCode: status,
+		Headers:    map[string]string{"Set-Cookie": cookieStr},
+	}, nil
+}
+
 func MatchesRoute(pattern, method string, req *Request) bool {
-	log.Println("MatchesRoute ", pattern, method, req.Path)
 	if req.HTTPMethod != method {
-		log.Println("matches route method false")
 		return false
 	}
 	pPaths := strings.Split(pattern, "/")
 	rPaths := strings.Split(req.Path, "/")
 	if len(pPaths) != len(rPaths) {
-		log.Println("matches route false != lens")
 		return false
 	}
 	for i, rPath := range rPaths {
 		pPath := pPaths[i]
 		isWc := strings.ContainsAny(pPath, "{}")
-		log.Printf("matching %s %s\n", rPath, pPath)
 		if !isWc && pPath != rPath {
 			log.Println("matches route false loop")
 			return false
 		}
 	}
-	log.Println("matches route true end")
 	return true
 }
 

@@ -85,7 +85,9 @@ func (u *Usecase) SignIn(ctx context.Context, req *t.SignInReq) (resp *t.User, e
 	if err != nil {
 		return nil, errors.Wrap(err, "error finding user by email")
 	}
-
+	if !user.Confirmed {
+		return nil, errors.New("user must first confirm by email")
+	}
 	if err = auth.ValidateCredentials(user.EncryptedPassword, req.Password); err != nil {
 		return nil, errors.Wrap(err, "error validating credentials")
 	}

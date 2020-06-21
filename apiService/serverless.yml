@@ -66,6 +66,7 @@ functions:
       MONGO_HOST: ${self:custom.secrets.MONGO_HOST}
       MONGO_USER: ${self:custom.secrets.MONGO_USER}
       MONGO_PWD: ${self:custom.secrets.MONGO_PWD}
+      USERS_HOST: ${self:custom.secrets.USERS_HOST}
       PLACES_HOST: ${self:custom.secrets.PLACES_HOST}
       JWT_KEY_PATH: ${self:custom.secrets.JWT_KEY_PATH}
       JWT_SECRET_PATH: ${self:custom.secrets.JWT_SECRET_PATH}
@@ -87,6 +88,18 @@ functions:
       - http:
           path: /users/{id}/check_in
           method: PUT
+          cors: true
+      - http:
+          path: /users/{id}/check_out
+          method: PUT
+          cors: true
+      - http:
+          path: /users/login
+          method: POST
+          cors: true
+      - http:
+          path: /users/{id}/confirm
+          method: GET
           cors: true
   places:
     handler: bin/places

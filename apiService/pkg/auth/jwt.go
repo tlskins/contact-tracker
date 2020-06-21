@@ -58,12 +58,11 @@ func (j *JWTService) RefreshExpirationMinutes() int {
 	return j.refreshExpirationMinutes
 }
 
-func AccessTokenFromContext(ctx context.Context) CustomClaims {
-	return ctx.Value(AccessTokenKey).(CustomClaims)
-}
-
-func UserIdFromContext(ctx context.Context) string {
-	return AccessTokenFromContext(ctx).Subject
+func ClaimsFromContext(ctx context.Context) *CustomClaims {
+	if ctx.Value(AccessTokenKey) == nil {
+		return nil
+	}
+	return ctx.Value(AccessTokenKey).(*CustomClaims)
 }
 
 func (j *JWTService) AuthorizeHandler(next http.Handler) http.HandlerFunc {

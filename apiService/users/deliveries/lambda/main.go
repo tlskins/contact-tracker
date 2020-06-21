@@ -23,6 +23,15 @@ type handler struct {
 	jwt     *auth.JWTService
 }
 
+func isAuthorized(ctx context.Context) error {
+	claims := auth.ClaimsFromContext(ctx)
+	log.Printf("isAuthorized claims: %+v\n", claims)
+	if claims == nil || claims.Subject == "" {
+		return errors.New("Unauthorized")
+	}
+	return nil
+}
+
 func (handler handler) router() func(context.Context, api.Request) (api.Response, error) {
 	return func(ctx context.Context, req api.Request) (api.Response, error) {
 
@@ -30,47 +39,48 @@ func (handler handler) router() func(context.Context, api.Request) (api.Response
 		ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 		defer cancel()
 
-		log.Println("Before router auth...")
 		// Add auth
-		if cookieVal, ok := req.Headers["cookie"]; ok {
-			if claims, err := handler.jwt.Decode(cookieVal); err != nil {
-				log.Printf("decode cookie err: %+v\n", err)
+		log.Printf("Headers: %v\n", req.Headers)
+		log.Printf("Cookie: %v\n", req.Headers["Cookie"])
+		if cookieVal, ok := req.Headers["Cookie"]; ok {
+			val := strings.ReplaceAll(cookieVal, fmt.Sprintf("%s=", auth.AccessTokenKey), "")
+			log.Printf("CookieVal: %s\n", val)
+			if claims, err := handler.jwt.Decode(val); err != nil {
 				return api.Fail(err, http.StatusInternalServerError)
 			} else {
 				ctx = context.WithValue(ctx, auth.AccessTokenKey, claims)
 			}
 		}
 
-		log.Println("Before MatchesRoute...")
-		if api.MatchesRoute("/users/{id}", "GET", &req) {
-			log.Println("Before handle get...")
+		// Routes
+		if api.MatchesRoute("/users", "POST", &req) {
+			return handler.Create(ctx, &req)
+		} else if api.MatchesRoute("/users/{id}", "GET", &req) {
+			if err := isAuthorized(ctx); err != nil {
+				return api.Fail(err, http.StatusUnauthorized)
+			}
 			return handler.Get(ctx, &req)
-		}
-		log.Println("After MatchesRoute...")
-
-		switch req.HTTPMethod {
-		case "POST":
-			return handler.Create(ctx, []byte(req.Body))
-
-		case "PUT":
-			id, ok := req.PathParameters["id"]
-			if !ok {
-				return api.Response{}, errors.New("id parameter missing")
+		} else if api.MatchesRoute("/users", "GET", &req) {
+			if err := isAuthorized(ctx); err != nil {
+				return api.Fail(err, http.StatusUnauthorized)
 			}
-			if strings.HasSuffix(req.Path, "/check_in") {
-				return handler.CheckIn(ctx, id, []byte(req.Body))
+			return handler.GetAll(ctx, &req)
+		} else if api.MatchesRoute("/users/{id}", "PUT", &req) {
+			if err := isAuthorized(ctx); err != nil {
+				return api.Fail(err, http.StatusUnauthorized)
 			}
-			return handler.Update(ctx, id, []byte(req.Body))
-
-		case "DELETE":
-			id, ok := req.PathParameters["id"]
-			if !ok {
-				return api.Response{}, errors.New("id parameter missing")
+			return handler.Update(ctx, &req)
+		} else if api.MatchesRoute("/users/{id}", "DELETE", &req) {
+			if err := isAuthorized(ctx); err != nil {
+				return api.Fail(err, http.StatusUnauthorized)
 			}
-			return handler.Delete(ctx, id)
-
-		default:
-			return api.Response{}, errors.New("route not found")
+			return handler.Delete(ctx, &req)
+		} else if api.MatchesRoute("/users/login", "POST", &req) {
+			return handler.SignIn(ctx, &req)
+		} else if api.MatchesRoute("/users/{id}/confirm", "GET", &req) {
+			return handler.Confirm(ctx, &req)
+		} else {
+			return api.Fail(errors.New("not found"), http.StatusNotFound)
 		}
 	}
 }
@@ -89,7 +99,7 @@ func (h *handler) Get(ctx context.Context, req *api.Request) (resp api.Response,
 }
 
 // GetAll users
-func (h *handler) GetAll(ctx context.Context) (resp api.Response, err error) {
+func (h *handler) GetAll(ctx context.Context, _ *api.Request) (resp api.Response, err error) {
 	var users []*t.User
 	if users, err = h.usecase.GetAll(ctx); err != nil {
 		return api.Fail(err, http.StatusInternalServerError)
@@ -98,11 +108,17 @@ func (h *handler) GetAll(ctx context.Context) (resp api.Response, err error) {
 }
 
 // Update a single user
-func (h *handler) Update(ctx context.Context, id string, body []byte) (resp api.Response, err error) {
+func (h *handler) Update(ctx context.Context, req *api.Request) (resp api.Response, err error) {
+	var id string
+	if id, err = api.GetPathParam("id", req); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
+	}
+	body := []byte(req.Body)
 	var update t.UpdateUser
 	if err := json.Unmarshal(body, &update); err != nil {
 		return api.Fail(err, http.StatusInternalServerError)
 	}
+	update.ID = id
 	var user *t.User
 	if user, err = h.usecase.Update(ctx, &update); err != nil {
 		return api.Fail(err, http.StatusInternalServerError)
@@ -111,7 +127,12 @@ func (h *handler) Update(ctx context.Context, id string, body []byte) (resp api.
 }
 
 // CheckIn a single user
-func (h *handler) CheckIn(ctx context.Context, id string, body []byte) (resp api.Response, err error) {
+func (h *handler) CheckIn(ctx context.Context, r *api.Request) (resp api.Response, err error) {
+	var id string
+	if id, err = api.GetPathParam("id", r); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
+	}
+	body := []byte(r.Body)
 	var req t.CheckInReq
 	if err := json.Unmarshal(body, &req); err != nil {
 		return api.Fail(err, http.StatusInternalServerError)
@@ -124,7 +145,8 @@ func (h *handler) CheckIn(ctx context.Context, id string, body []byte) (resp api
 }
 
 // Create a user
-func (h *handler) Create(ctx context.Context, body []byte) (resp api.Response, err error) {
+func (h *handler) Create(ctx context.Context, r *api.Request) (resp api.Response, err error) {
+	body := []byte(r.Body)
 	var req t.CreateUser
 	if err := json.Unmarshal(body, &req); err != nil {
 		return api.Fail(err, http.StatusInternalServerError)
@@ -137,9 +159,48 @@ func (h *handler) Create(ctx context.Context, body []byte) (resp api.Response, e
 }
 
 // Delete a user
-func (h *handler) Delete(ctx context.Context, id string) (resp api.Response, err error) {
+func (h *handler) Delete(ctx context.Context, req *api.Request) (resp api.Response, err error) {
+	var id string
+	if id, err = api.GetPathParam("id", req); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
+	}
 	if err = h.usecase.Delete(ctx, id); err != nil {
 		return api.Fail(err, http.StatusInternalServerError)
+	}
+	return api.Success(map[string]interface{}{"success": true}, http.StatusNoContent)
+}
+
+// SignIn a user
+func (h *handler) SignIn(ctx context.Context, r *api.Request) (resp api.Response, err error) {
+	body := []byte(r.Body)
+	var req t.SignInReq
+	if err := json.Unmarshal(body, &req); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
+	}
+	var user *t.User
+	if user, err = h.usecase.SignIn(ctx, &req); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
+	}
+	var accessToken string
+	if accessToken, err = h.jwt.GenAccessToken(user); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
+	}
+	cookie := &http.Cookie{
+		Name:  auth.AccessTokenKey,
+		Value: accessToken,
+		// Expires: expirationTime,
+	}
+	return api.SuccessWithCookie(user, http.StatusOK, cookie.String())
+}
+
+// Confirm a user
+func (h *handler) Confirm(ctx context.Context, req *api.Request) (resp api.Response, err error) {
+	var id string
+	if id, err = api.GetPathParam("id", req); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
+	}
+	if err := h.usecase.Confirm(ctx, id); err != nil {
+		return api.Fail(err, http.StatusUnprocessableEntity)
 	}
 	return api.Success(map[string]interface{}{"success": true}, http.StatusNoContent)
 }

@@ -5,8 +5,10 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"net/http"
+	"strings"
 
-	api "github.com/contact-tracker/apiService/pkg/http"
+	apiHttp "github.com/contact-tracker/apiService/pkg/http"
+	apiLambda "github.com/contact-tracker/apiService/pkg/lambda"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -58,29 +60,42 @@ func (j *JWTService) RefreshExpirationMinutes() int {
 	return j.refreshExpirationMinutes
 }
 
-func ClaimsFromContext(ctx context.Context) *CustomClaims {
-	if ctx.Value(AccessTokenKey) == nil {
-		return nil
-	}
-	return ctx.Value(AccessTokenKey).(*CustomClaims)
-}
-
 func (j *JWTService) AuthorizeHandler(next http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie(AccessTokenKey)
 		if err != nil {
 			if err == http.ErrNoCookie {
-				api.CheckHTTPError(http.StatusUnauthorized, fmt.Errorf("Unauthorized access"))
+				apiHttp.CheckHTTPError(http.StatusUnauthorized, fmt.Errorf("Unauthorized access"))
 			}
-			api.CheckHTTPError(http.StatusUnauthorized, err)
+			apiHttp.CheckHTTPError(http.StatusUnauthorized, err)
 		}
 
 		tokenStr := c.Value
 		claims, err := j.Decode(tokenStr)
-		api.CheckHTTPError(http.StatusUnauthorized, err)
+		apiHttp.CheckHTTPError(http.StatusUnauthorized, err)
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, AccessTokenKey, claims)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func (j *JWTService) IncludeLambdaAuth(ctx context.Context, req *apiLambda.Request) (context.Context, error) {
+	if cookieVal, ok := req.Headers["Cookie"]; ok {
+		val := strings.ReplaceAll(cookieVal, fmt.Sprintf("%s=", AccessTokenKey), "")
+		var err error
+		var claims *CustomClaims
+		if claims, err = j.Decode(val); err != nil {
+			return ctx, err
+		}
+		ctx = context.WithValue(ctx, AccessTokenKey, claims)
+	}
+	return ctx, nil
+}
+
+func ClaimsFromContext(ctx context.Context) *CustomClaims {
+	if ctx.Value(AccessTokenKey) == nil {
+		return nil
+	}
+	return ctx.Value(AccessTokenKey).(*CustomClaims)
 }

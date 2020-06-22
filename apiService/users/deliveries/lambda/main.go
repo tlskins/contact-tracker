@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
@@ -25,14 +24,13 @@ type handler struct {
 
 func isAuthorized(ctx context.Context) error {
 	claims := auth.ClaimsFromContext(ctx)
-	log.Printf("isAuthorized claims: %+v\n", claims)
 	if claims == nil || claims.Subject == "" {
 		return errors.New("Unauthorized")
 	}
 	return nil
 }
 
-func (handler handler) router() func(context.Context, api.Request) (api.Response, error) {
+func (h handler) router() func(context.Context, api.Request) (api.Response, error) {
 	return func(ctx context.Context, req api.Request) (api.Response, error) {
 
 		// Add cancellation deadline to context
@@ -40,45 +38,38 @@ func (handler handler) router() func(context.Context, api.Request) (api.Response
 		defer cancel()
 
 		// Add auth
-		log.Printf("Headers: %v\n", req.Headers)
-		log.Printf("Cookie: %v\n", req.Headers["Cookie"])
-		if cookieVal, ok := req.Headers["Cookie"]; ok {
-			val := strings.ReplaceAll(cookieVal, fmt.Sprintf("%s=", auth.AccessTokenKey), "")
-			log.Printf("CookieVal: %s\n", val)
-			if claims, err := handler.jwt.Decode(val); err != nil {
-				return api.Fail(err, http.StatusInternalServerError)
-			} else {
-				ctx = context.WithValue(ctx, auth.AccessTokenKey, claims)
-			}
+		var err error
+		if ctx, err = h.jwt.IncludeLambdaAuth(ctx, &req); err != nil {
+			return api.Fail(err, http.StatusInternalServerError)
 		}
 
 		// Routes
 		if api.MatchesRoute("/users", "POST", &req) {
-			return handler.Create(ctx, &req)
+			return h.Create(ctx, &req)
 		} else if api.MatchesRoute("/users/{id}", "GET", &req) {
 			if err := isAuthorized(ctx); err != nil {
 				return api.Fail(err, http.StatusUnauthorized)
 			}
-			return handler.Get(ctx, &req)
+			return h.Get(ctx, &req)
 		} else if api.MatchesRoute("/users", "GET", &req) {
 			if err := isAuthorized(ctx); err != nil {
 				return api.Fail(err, http.StatusUnauthorized)
 			}
-			return handler.GetAll(ctx, &req)
+			return h.GetAll(ctx, &req)
 		} else if api.MatchesRoute("/users/{id}", "PUT", &req) {
 			if err := isAuthorized(ctx); err != nil {
 				return api.Fail(err, http.StatusUnauthorized)
 			}
-			return handler.Update(ctx, &req)
+			return h.Update(ctx, &req)
 		} else if api.MatchesRoute("/users/{id}", "DELETE", &req) {
 			if err := isAuthorized(ctx); err != nil {
 				return api.Fail(err, http.StatusUnauthorized)
 			}
-			return handler.Delete(ctx, &req)
+			return h.Delete(ctx, &req)
 		} else if api.MatchesRoute("/users/login", "POST", &req) {
-			return handler.SignIn(ctx, &req)
+			return h.SignIn(ctx, &req)
 		} else if api.MatchesRoute("/users/{id}/confirm", "GET", &req) {
-			return handler.Confirm(ctx, &req)
+			return h.Confirm(ctx, &req)
 		} else {
 			return api.Fail(errors.New("not found"), http.StatusNotFound)
 		}

@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	apiHttp "github.com/contact-tracker/apiService/pkg/http"
-	apiLambda "github.com/contact-tracker/apiService/pkg/lambda"
+	apiHttp "github.com/contact-tracker/apiService/pkg/api/http"
+	apiLambda "github.com/contact-tracker/apiService/pkg/api/lambda"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -16,6 +16,7 @@ import (
 type JWTService struct {
 	key                      *rsa.PublicKey
 	secret                   *rsa.PrivateKey
+	rpcPwd                   string
 	accessExpirationMinutes  int
 	refreshExpirationMinutes int
 }
@@ -23,11 +24,15 @@ type JWTService struct {
 type JWTServiceConfig struct {
 	Key                      []byte
 	Secret                   []byte
+	RPCPwd                   string
 	AccessExpirationMinutes  int
 	RefreshExpirationMinutes int
 }
 
+// AccessTokenKey - cookie and context key for jwt claims authorization
 const AccessTokenKey = "accessToken"
+
+// RPCAccessTokenKey - cookie and context key for rpc authorization
 const RPCAccessTokenKey = "rpcAccessToken"
 
 func NewJWTService(config JWTServiceConfig) (*JWTService, error) {
@@ -50,6 +55,7 @@ func NewJWTService(config JWTServiceConfig) (*JWTService, error) {
 		secret:                   jSecret,
 		accessExpirationMinutes:  config.AccessExpirationMinutes,
 		refreshExpirationMinutes: config.RefreshExpirationMinutes,
+		rpcPwd:                   config.RPCPwd,
 	}, nil
 }
 
@@ -72,7 +78,7 @@ func (j *JWTService) AuthorizeHandler(next http.Handler) http.HandlerFunc {
 
 		fmt.Printf("rpcCookie: %+v\n\n", rpcCookie)
 
-		if rpcCookie != nil && rpcCookie.Value == "ABC" {
+		if rpcCookie != nil && rpcCookie.Value == j.rpcPwd {
 			ctx = context.WithValue(ctx, RPCAccessTokenKey, rpcCookie.Value)
 		} else {
 			accessCookie, err := r.Cookie(AccessTokenKey)

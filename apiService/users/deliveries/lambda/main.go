@@ -11,8 +11,8 @@ import (
 
 	"github.com/aws/aws-lambda-go/lambda"
 
+	api "github.com/contact-tracker/apiService/pkg/api/lambda"
 	"github.com/contact-tracker/apiService/pkg/auth"
-	api "github.com/contact-tracker/apiService/pkg/lambda"
 	"github.com/contact-tracker/apiService/users"
 	t "github.com/contact-tracker/apiService/users/types"
 )

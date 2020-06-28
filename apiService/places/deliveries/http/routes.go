@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	api "github.com/contact-tracker/apiService/pkg/api/http"
 	"github.com/contact-tracker/apiService/pkg/auth"
-	api "github.com/contact-tracker/apiService/pkg/http"
 	"github.com/go-chi/chi"
 
 	"github.com/contact-tracker/apiService/places"

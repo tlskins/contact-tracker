@@ -53,6 +53,7 @@ func Init() (UserService, *auth.JWTService, error) {
 	sesAccessSecret := os.Getenv("AWS_SES_ACCESS_SECRET")
 	sesRegion := os.Getenv("AWS_SES_REGION")
 	senderEmail := os.Getenv("SENDER_EMAIL")
+	rpcPwd := os.Getenv("RPC_AUTH_PWD")
 
 	// Init mongo repo
 	mc, err := m.NewClient(mongoHost, mongoUser, mongoPwd)
@@ -62,7 +63,7 @@ func Init() (UserService, *auth.JWTService, error) {
 	repository := repo.NewMongoUserRepository(mc, mongoDBName)
 
 	// Init rpc client
-	rpcClient := usrRpc.NewHTTPRPCClient(placesHost)
+	rpcClient := usrRpc.NewRPCClient(placesHost, rpcPwd)
 
 	// Init jwt service
 	jwtKey, err := ioutil.ReadFile(jwtKeyPath)
@@ -73,7 +74,11 @@ func Init() (UserService, *auth.JWTService, error) {
 	if err != nil {
 		log.Fatalf("Error reading jwt secret file path: %s Error: %v\n", jwtSecretPath, err)
 	}
-	j, err := auth.NewJWTService(auth.JWTServiceConfig{Key: jwtKey, Secret: jwtSecret})
+	j, err := auth.NewJWTService(auth.JWTServiceConfig{
+		Key:    jwtKey,
+		Secret: jwtSecret,
+		RPCPwd: rpcPwd,
+	})
 	if err != nil {
 		log.Fatalf("Error creating jwt service: %v\n", err)
 	}

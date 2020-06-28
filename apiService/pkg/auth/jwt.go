@@ -28,6 +28,7 @@ type JWTServiceConfig struct {
 }
 
 const AccessTokenKey = "accessToken"
+const RPCAccessTokenKey = "rpcAccessToken"
 
 func NewJWTService(config JWTServiceConfig) (*JWTService, error) {
 	var jKey *rsa.PublicKey
@@ -62,19 +63,29 @@ func (j *JWTService) RefreshExpirationMinutes() int {
 
 func (j *JWTService) AuthorizeHandler(next http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		c, err := r.Cookie(AccessTokenKey)
-		if err != nil {
-			if err == http.ErrNoCookie {
-				apiHttp.CheckHTTPError(http.StatusUnauthorized, fmt.Errorf("Unauthorized access"))
-			}
+		ctx := r.Context()
+
+		rpcCookie, err := r.Cookie(RPCAccessTokenKey)
+		if err != nil && err != http.ErrNoCookie {
 			apiHttp.CheckHTTPError(http.StatusUnauthorized, err)
 		}
 
-		tokenStr := c.Value
-		claims, err := j.Decode(tokenStr)
-		apiHttp.CheckHTTPError(http.StatusUnauthorized, err)
-		ctx := r.Context()
-		ctx = context.WithValue(ctx, AccessTokenKey, claims)
+		fmt.Printf("rpcCookie: %+v\n\n", rpcCookie)
+
+		if rpcCookie != nil && rpcCookie.Value == "ABC" {
+			ctx = context.WithValue(ctx, RPCAccessTokenKey, rpcCookie.Value)
+		} else {
+			accessCookie, err := r.Cookie(AccessTokenKey)
+			if err != nil {
+				if err == http.ErrNoCookie {
+					apiHttp.CheckHTTPError(http.StatusUnauthorized, fmt.Errorf("Unauthorized access"))
+				}
+				apiHttp.CheckHTTPError(http.StatusUnauthorized, err)
+			}
+			claims, err := j.Decode(accessCookie.Value)
+			apiHttp.CheckHTTPError(http.StatusUnauthorized, err)
+			ctx = context.WithValue(ctx, AccessTokenKey, claims)
+		}
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

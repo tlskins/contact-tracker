@@ -14,13 +14,11 @@ const charSet = "UTF-8"
 
 type EmailService interface {
 	SendEmail(input *EmailInput) error
-	UsersHost() string
 }
 
 type SESClient struct {
 	ses         *ses.SES
 	senderEmail string
-	usersHost   string
 }
 
 func (s SESClient) SendEmail(input *EmailInput) error {
@@ -36,11 +34,7 @@ func (s SESClient) SendEmail(input *EmailInput) error {
 	return nil
 }
 
-func (s SESClient) UsersHost() string {
-	return s.usersHost
-}
-
-func Init(region, accessKey, accessSecret, senderEmail, usersHost string) (EmailService, error) {
+func Init(region, accessKey, accessSecret, senderEmail string) (EmailService, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(region),
 		Credentials: credentials.NewStaticCredentials(
@@ -54,7 +48,7 @@ func Init(region, accessKey, accessSecret, senderEmail, usersHost string) (Email
 	}
 	s := ses.New(sess)
 
-	return SESClient{s, senderEmail, usersHost}, nil
+	return SESClient{s, senderEmail}, nil
 }
 
 type EmailInput struct {

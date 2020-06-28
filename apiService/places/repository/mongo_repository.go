@@ -41,6 +41,14 @@ func (r *MongoPlaceRepository) Get(_ context.Context, id string) (resp *t.Place,
 	return
 }
 
+func (r *MongoPlaceRepository) FindByEmail(_ context.Context, email string) (resp *t.Place, err error) {
+	sess, c := r.C(ColPlaces)
+	defer sess.Close()
+
+	err = m.FindOne(c, &resp, m.M{"em": email})
+	return
+}
+
 func (r *MongoPlaceRepository) GetAll(_ context.Context) (resp []*t.Place, err error) {
 	sess, c := r.C(ColPlaces)
 	defer sess.Close()

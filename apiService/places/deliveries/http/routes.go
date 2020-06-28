@@ -1,163 +1,131 @@
 package http
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
 
+	"github.com/contact-tracker/apiService/pkg/auth"
+	api "github.com/contact-tracker/apiService/pkg/http"
+	"github.com/go-chi/chi"
+
 	"github.com/contact-tracker/apiService/places"
 	t "github.com/contact-tracker/apiService/places/types"
-
-	"github.com/gorilla/mux"
 )
 
 const fiveSecondsTimeout = time.Second * 5
 
 type handler struct {
 	usecase places.PlaceService
+	jwt     *auth.JWTService
 }
 
-func writeErr(w http.ResponseWriter, err error) {
-	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte(err.Error()))
+func (d *handler) Get() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		id := chi.URLParam(r, "id")
+		place, err := d.usecase.Get(ctx, id)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
+		api.WriteJSON(w, http.StatusOK, place)
+	}
 }
 
-func (d *handler) Get(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
-	defer cancel()
-
-	vars := mux.Vars(r)
-	id := vars["id"]
-
-	place, err := d.usecase.Get(ctx, id)
-	if err != nil {
-		writeErr(w, err)
-		return
+func (d *handler) GetAll() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		places, err := d.usecase.GetAll(ctx)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
+		api.WriteJSON(w, http.StatusOK, places)
 	}
-
-	data, err := json.Marshal(place)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
 }
 
-func (d *handler) GetAll(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
-	defer cancel()
+func (d *handler) Update() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		req := &t.UpdatePlace{}
+		api.ParseHTTPParams(r, req)
 
-	places, err := d.usecase.GetAll(ctx)
-	if err != nil {
-		writeErr(w, err)
-		return
+		req.ID = chi.URLParam(r, "id")
+		resp, err := d.usecase.Update(ctx, req)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
+		api.WriteJSON(w, http.StatusOK, resp)
 	}
-
-	data, err := json.Marshal(places)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
 }
 
-func (d *handler) Update(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
-	defer cancel()
+func (d *handler) Create() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		req := &t.CreatePlace{}
+		api.ParseHTTPParams(r, req)
 
-	decoder := json.NewDecoder(r.Body)
-	place := &t.UpdatePlace{}
-	if err := decoder.Decode(&place); err != nil {
-		writeErr(w, err)
-		return
+		resp, err := d.usecase.Create(ctx, req)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
+		api.WriteJSON(w, http.StatusOK, resp)
 	}
-
-	vars := mux.Vars(r)
-	place.ID = vars["id"]
-
-	var err error
-	var usr *t.Place
-	if usr, err = d.usecase.Update(ctx, place); err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	data, err := json.Marshal(usr)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
 }
 
-func (d *handler) Create(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
-	defer cancel()
+func (d *handler) Delete() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		id := chi.URLParam(r, "id")
 
-	place := &t.Place{}
-	var err error
-	decoder := json.NewDecoder(r.Body)
-	if err = decoder.Decode(&place); err != nil {
-		writeErr(w, err)
-		return
+		err := d.usecase.Delete(ctx, id)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
+		api.WriteJSON(w, http.StatusOK, nil)
 	}
-
-	var resp *t.Place
-	if resp, err = d.usecase.Create(ctx, place); err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	data, err := json.Marshal(resp)
-	if err != nil {
-		writeErr(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
 }
 
-func (d *handler) Delete(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(context.Background(), fiveSecondsTimeout)
-	defer cancel()
+func (d *handler) SignIn() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		req := &t.SignInReq{}
+		api.ParseHTTPParams(r, req)
 
-	vars := mux.Vars(r)
-	id := vars["id"]
+		place, err := d.usecase.SignIn(ctx, req)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
+		accessToken, err := d.jwt.GenAccessToken(place)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
 
-	if err := d.usecase.Delete(ctx, id); err != nil {
-		writeErr(w, err)
-		return
+		http.SetCookie(w, &http.Cookie{
+			Name:  auth.AccessTokenKey,
+			Value: accessToken,
+			// Expires: expirationTime,
+		})
+
+		api.WriteJSON(w, http.StatusOK, place)
 	}
+}
 
-	w.WriteHeader(http.StatusNoContent)
-	w.Write([]byte("Deleted"))
+func (d *handler) Confirm() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		id := chi.URLParam(r, "id")
+
+		err := d.usecase.Confirm(ctx, id)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
+		api.WriteJSON(w, http.StatusOK, nil)
+	}
 }
 
 // Routes -
-func Routes() (*mux.Router, error) {
+func Routes() (*chi.Mux, error) {
 	fmt.Println("Starting place http routes...")
-	usecase, err := places.InitMongoService()
+	usecase, j, err := places.Init()
 	if err != nil {
 		log.Panic(err)
 	}
 
-	h := &handler{usecase}
-	r := mux.NewRouter()
-	r.HandleFunc("/places", h.Create).Methods("POST")
-	r.HandleFunc("/places", h.GetAll).Methods("GET")
-	r.HandleFunc("/places/{id}", h.Get).Methods("GET")
-	r.HandleFunc("/places/{id}", h.Update).Methods("PUT")
-	r.HandleFunc("/places/{id}", h.Delete).Methods("DELETE")
+	h := &handler{usecase, j}
+	r := api.NewRouter()
+
+	r.Post("/places", h.Create())
+	r.Get("/places", j.AuthorizeHandler(h.GetAll()))
+	r.Get("/places/{id}", j.AuthorizeHandler(h.Get()))
+	r.Put("/places/{id}", j.AuthorizeHandler(h.Update()))
+	r.Delete("/places/{id}", j.AuthorizeHandler(h.Delete()))
+	r.Post("/places/login", h.SignIn())
+	r.Get("/places/{id}/confirm", h.Confirm())
 
 	return r, nil
 }

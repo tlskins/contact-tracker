@@ -50,3 +50,10 @@ func HandleError(w http.ResponseWriter) {
 		}
 	}
 }
+
+func IsErrorStatusCode(code int) bool {
+	if code >= 200 && code <= 299 {
+		return false
+	}
+	return true
+}

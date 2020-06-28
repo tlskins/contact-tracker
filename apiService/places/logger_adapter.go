@@ -51,10 +51,10 @@ func (a *LoggerAdapter) Update(ctx context.Context, place *t.UpdatePlace) (*t.Pl
 }
 
 // Create a single place
-func (a *LoggerAdapter) Create(ctx context.Context, place *t.Place) (*t.Place, error) {
+func (a *LoggerAdapter) Create(ctx context.Context, req *t.CreatePlace) (*t.Place, error) {
 	defer a.Logger.Sync()
 	a.Logger.Info("creating a single place")
-	usr, err := a.Usecase.Create(ctx, place)
+	usr, err := a.Usecase.Create(ctx, req)
 	a.logErr(err)
 	return usr, err
 }
@@ -64,6 +64,25 @@ func (a *LoggerAdapter) Delete(ctx context.Context, id string) error {
 	defer a.Logger.Sync()
 	a.Logger.Info("deleting a single place")
 	err := a.Usecase.Delete(ctx, id)
+	a.logErr(err)
+	return err
+}
+
+// SignIn a single place
+func (a *LoggerAdapter) SignIn(ctx context.Context, req *t.SignInReq) (*t.Place, error) {
+	defer a.Logger.Sync()
+	a.Logger.With(zap.String("email", req.Email))
+	a.Logger.Info("sign in a single place")
+	resp, err := a.Usecase.SignIn(ctx, req)
+	a.logErr(err)
+	return resp, err
+}
+
+// Confirm a single place
+func (a *LoggerAdapter) Confirm(ctx context.Context, id string) error {
+	defer a.Logger.Sync()
+	a.Logger.Info("confirming a single place")
+	err := a.Usecase.Confirm(ctx, id)
 	a.logErr(err)
 	return err
 }

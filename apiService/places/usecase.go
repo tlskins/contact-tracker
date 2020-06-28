@@ -2,7 +2,11 @@ package places
 
 import (
 	"context"
+	"fmt"
+	"time"
 
+	"github.com/contact-tracker/apiService/pkg/auth"
+	"github.com/contact-tracker/apiService/pkg/email"
 	t "github.com/contact-tracker/apiService/places/types"
 
 	"github.com/google/uuid"
@@ -20,11 +24,14 @@ type repository interface {
 	Update(ctx context.Context, place *t.UpdatePlace) (*t.Place, error)
 	Create(ctx context.Context, place *t.Place) (*t.Place, error)
 	Delete(ctx context.Context, id string) error
+	FindByEmail(ctx context.Context, email string) (*t.Place, error)
 }
 
 // Usecase for interacting with places
 type Usecase struct {
 	Repository repository
+	Email      email.EmailService
+	placesHost string
 }
 
 // Get a single place
@@ -60,16 +67,25 @@ func (u *Usecase) Update(ctx context.Context, place *t.UpdatePlace) (resp *t.Pla
 }
 
 // Create a single place
-func (u *Usecase) Create(ctx context.Context, place *t.Place) (resp *t.Place, err error) {
+func (u *Usecase) Create(ctx context.Context, req *t.CreatePlace) (resp *t.Place, err error) {
 	validate = validator.New()
-	if err := validate.Struct(*place); err != nil {
+	if err := validate.Struct(*req); err != nil {
 		validationErrors := err.(validator.ValidationErrors)
 		return nil, validationErrors
 	}
 
+	place := req.ToPlace()
 	place.ID = u.newID()
+	if place.EncryptedPassword, err = auth.EncryptPassword(req.Password); err != nil {
+		return nil, errors.Wrap(err, "error encrypting password")
+	}
+
 	if resp, err = u.Repository.Create(ctx, place); err != nil {
 		return nil, errors.Wrap(err, "error creating new place")
+	}
+
+	if err := u.Email.SendEmail(t.WelcomeEmailInput(place, u.placesHost)); err != nil {
+		return nil, err
 	}
 
 	return resp, nil
@@ -79,6 +95,50 @@ func (u *Usecase) Create(ctx context.Context, place *t.Place) (resp *t.Place, er
 func (u *Usecase) Delete(ctx context.Context, id string) error {
 	if err := u.Repository.Delete(ctx, id); err != nil {
 		return errors.Wrap(err, "error deleting place")
+	}
+	return nil
+}
+
+// SignIn -
+func (u *Usecase) SignIn(ctx context.Context, req *t.SignInReq) (resp *t.Place, err error) {
+	validate = validator.New()
+	if err = validate.Struct(req); err != nil {
+		validationErrors := err.(validator.ValidationErrors)
+		return nil, validationErrors
+	}
+
+	place, err := u.Repository.FindByEmail(ctx, req.Email)
+	if err != nil {
+		return nil, errors.Wrap(err, "error finding place by email")
+	}
+	if !place.Confirmed {
+		return nil, errors.New("place must first confirm by email")
+	}
+	if err = auth.ValidateCredentials(place.EncryptedPassword, req.Password); err != nil {
+		return nil, errors.Wrap(err, "error validating credentials")
+	}
+
+	now := time.Now()
+	if resp, err = u.Repository.Update(ctx, &t.UpdatePlace{ID: place.ID, LastLoggedIn: &now}); err != nil {
+		return nil, errors.Wrap(err, "error updating place")
+	}
+
+	return resp, err
+}
+
+// Confirm a place
+func (u *Usecase) Confirm(ctx context.Context, id string) error {
+	place, err := u.Repository.Get(ctx, id)
+	if err != nil {
+		errors.Wrap(err, "error getting place for confirmation")
+	}
+	if place.Confirmed {
+		return fmt.Errorf("place already confirmed")
+	}
+
+	c := true
+	if _, err := u.Repository.Update(ctx, &t.UpdatePlace{ID: id, Confirmed: &c}); err != nil {
+		return errors.Wrap(err, "error confirming place")
 	}
 	return nil
 }

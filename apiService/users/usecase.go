@@ -39,6 +39,7 @@ type Usecase struct {
 	Repository repository
 	RPC        rpc
 	Email      email.EmailService
+	usersHost  string
 }
 
 // Get a single user
@@ -154,7 +155,7 @@ func (u *Usecase) Create(ctx context.Context, req *t.CreateUser) (resp *t.User, 
 		return nil, errors.Wrap(err, "error creating new user")
 	}
 
-	if err := u.Email.SendEmail(t.WelcomeEmailInput(user, u.Email.UsersHost())); err != nil {
+	if err := u.Email.SendEmail(t.WelcomeEmailInput(user, u.usersHost)); err != nil {
 		return nil, err
 	}
 

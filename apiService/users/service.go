@@ -24,12 +24,13 @@ type UserService interface {
 	Get(ctx context.Context, id string) (*t.User, error)
 	GetAll(ctx context.Context) ([]*t.User, error)
 	Update(ctx context.Context, user *t.UpdateUser) (*t.User, error)
-	SignIn(ctx context.Context, req *t.SignInReq) (*t.User, error)
-	CheckIn(ctx context.Context, id string, chk *t.CheckInReq) (*t.User, error)
-	CheckOut(ctx context.Context, id string, req *t.CheckOutReq) (*t.User, error)
 	Create(ctx context.Context, user *t.CreateUser) (*t.User, error)
 	Delete(ctx context.Context, id string) error
+
+	SignIn(ctx context.Context, req *t.SignInReq) (*t.User, error)
 	Confirm(ctx context.Context, id string) error
+	CheckIn(ctx context.Context, id string, chk *t.CheckInReq) (*t.User, error)
+	CheckOut(ctx context.Context, id string, req *t.CheckOutReq) (*t.User, error)
 }
 
 // Init sets up an instance of this domains
@@ -78,7 +79,7 @@ func Init() (UserService, *auth.JWTService, error) {
 	}
 
 	// Init email
-	emailClient, err := email.Init(sesRegion, sesAccessKey, sesAccessSecret, senderEmail, usersHost)
+	emailClient, err := email.Init(sesRegion, sesAccessKey, sesAccessSecret, senderEmail)
 	if err != nil {
 		log.Fatalf("Error starting email svc: %v\n", err)
 	}
@@ -92,6 +93,7 @@ func Init() (UserService, *auth.JWTService, error) {
 			Repository: repository,
 			RPC:        rpcClient,
 			Email:      emailClient,
+			usersHost:  usersHost,
 		},
 	}
 	return usecase, j, nil

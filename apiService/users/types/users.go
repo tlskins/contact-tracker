@@ -21,11 +21,12 @@ func (u User) GetAuthables() (id, email string, conf bool) {
 
 // UpdateUser -
 type UpdateUser struct {
-	ID           string     `bson:"-" json:"id"`
-	Email        *string    `bson:"em,omitempty" json:"email,omitempty"`
-	Name         *string    `bson:"nm,omitempty" json:"name,omitempty" validate:"gte=1,lte=50"`
-	LastLoggedIn *time.Time `bson:"lstLogIn,omitempty" json:"-"`
-	Confirmed    *bool      `bson:"conf,omitempty" json:"-"`
+	ID                string     `bson:"-" json:"id"`
+	Email             *string    `bson:"em,omitempty" json:"email,omitempty"`
+	Name              *string    `bson:"nm,omitempty" json:"name,omitempty" validate:"gte=1,lte=50"`
+	LastLoggedIn      *time.Time `bson:"lstLogIn,omitempty" json:"-"`
+	Confirmed         *bool      `bson:"conf,omitempty" json:"-"`
+	EncryptedPassword *string    `bson:"pwd,omitempty" json:"-"`
 }
 
 // CreateUser -

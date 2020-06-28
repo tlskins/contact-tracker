@@ -27,7 +27,7 @@ type SignInReq struct {
 
 func WelcomeEmailInput(user *User, usersHost string) *email.EmailInput {
 	confLink := fmt.Sprintf("%s/users/%s/confirm", usersHost, user.ID)
-	body := fmt.Sprintf("Welcome to contract tracker %s!\n\nPlease follow this link to confirm your email: %s", user.Name, confLink)
+	body := fmt.Sprintf("Welcome to contract tracker %s!\\n\\nA new user account has been created. Please follow this link to confirm your email: %s", user.Name, confLink)
 
 	return &email.EmailInput{
 		ToAddresses: []*string{&user.Email},

@@ -37,7 +37,11 @@ func Success(data interface{}, status int) (Response, error) {
 	}
 
 	return Response{
-		Body:       string(body),
+		Body: string(body),
+		Headers: map[string]string{
+			"Access-Control-Allow-Origin":      "*",
+			"Access-Control-Allow-Credentials": "true",
+		},
 		StatusCode: status,
 	}, nil
 }
@@ -51,7 +55,11 @@ func SuccessWithCookie(data interface{}, status int, cookieStr string) (Response
 	return Response{
 		Body:       string(body),
 		StatusCode: status,
-		Headers:    map[string]string{"Set-Cookie": cookieStr},
+		Headers: map[string]string{
+			"Set-Cookie":                       cookieStr,
+			"Access-Control-Allow-Origin":      "*",
+			"Access-Control-Allow-Credentials": "true",
+		},
 	}, nil
 }
 

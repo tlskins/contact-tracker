@@ -67,7 +67,6 @@ functions:
       MONGO_USER: ${self:custom.secrets.MONGO_USER}
       MONGO_PWD: ${self:custom.secrets.MONGO_PWD}
       USERS_HOST: ${self:custom.secrets.USERS_HOST}
-      PLACES_HOST: ${self:custom.secrets.PLACES_HOST}
       JWT_KEY_PATH: ${self:custom.secrets.JWT_KEY_PATH}
       JWT_SECRET_PATH: ${self:custom.secrets.JWT_SECRET_PATH}
       JWT_ACCESS_EXPIR: ${self:custom.secrets.JWT_ACCESS_EXPIR}
@@ -109,7 +108,7 @@ functions:
       MONGO_HOST: ${self:custom.secrets.MONGO_HOST}
       MONGO_USER: ${self:custom.secrets.MONGO_USER}
       MONGO_PWD: ${self:custom.secrets.MONGO_PWD}
-      USERS_HOST: ${self:custom.secrets.USERS_HOST}
+      PLACES_HOST: ${self:custom.secrets.PLACES_HOST}
       JWT_KEY_PATH: ${self:custom.secrets.JWT_KEY_PATH}
       JWT_SECRET_PATH: ${self:custom.secrets.JWT_SECRET_PATH}
       JWT_ACCESS_EXPIR: ${self:custom.secrets.JWT_ACCESS_EXPIR}
@@ -135,6 +134,33 @@ functions:
       - http:
           path: /places/{id}/confirm
           method: GET
+          cors: true
+  checkIns:
+    handler: bin/check-ins
+    environment:
+      MONGO_DB_NAME: ${self:custom.secrets.MONGO_DB_NAME}
+      MONGO_HOST: ${self:custom.secrets.MONGO_HOST}
+      MONGO_USER: ${self:custom.secrets.MONGO_USER}
+      MONGO_PWD: ${self:custom.secrets.MONGO_PWD}
+      USERS_HOST: ${self:custom.secrets.USERS_HOST}
+      PLACES_HOST: ${self:custom.secrets.PLACES_HOST}
+      JWT_KEY_PATH: ${self:custom.secrets.JWT_KEY_PATH}
+      JWT_SECRET_PATH: ${self:custom.secrets.JWT_SECRET_PATH}
+      JWT_ACCESS_EXPIR: ${self:custom.secrets.JWT_ACCESS_EXPIR}
+      JWT_REFRESH_EXPIR: ${self:custom.secrets.JWT_REFRESH_EXPIR}
+      RPC_AUTH_PWD: ${self:custom.secrets.RPC_AUTH_PWD}
+    events:
+      - http:
+          path: /check-ins
+          method: GET
+          cors: true
+      - http:
+          path: /check-ins/{id}
+          method: GET
+          cors: true
+      - http:
+          path: /check-ins
+          method: POST
           cors: true
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events

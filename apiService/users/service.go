@@ -12,7 +12,6 @@ import (
 	"github.com/contact-tracker/apiService/pkg/email"
 	m "github.com/contact-tracker/apiService/pkg/mongo"
 	repo "github.com/contact-tracker/apiService/users/repository"
-	usrRpc "github.com/contact-tracker/apiService/users/rpc"
 	t "github.com/contact-tracker/apiService/users/types"
 
 	"github.com/joho/godotenv"
@@ -26,11 +25,8 @@ type UserService interface {
 	Update(ctx context.Context, user *t.UpdateUser) (*t.User, error)
 	Create(ctx context.Context, user *t.CreateUser) (*t.User, error)
 	Delete(ctx context.Context, id string) error
-
 	SignIn(ctx context.Context, req *t.SignInReq) (*t.User, error)
 	Confirm(ctx context.Context, id string) error
-	CheckIn(ctx context.Context, id string, chk *t.CheckInReq) (*t.User, error)
-	CheckOut(ctx context.Context, id string, req *t.CheckOutReq) (*t.User, error)
 }
 
 // Init sets up an instance of this domains
@@ -46,7 +42,6 @@ func Init() (UserService, *auth.JWTService, error) {
 	mongoUser := os.Getenv("MONGO_USER")
 	mongoPwd := os.Getenv("MONGO_PWD")
 	usersHost := os.Getenv("USERS_HOST")
-	placesHost := os.Getenv("PLACES_HOST")
 	jwtKeyPath := os.Getenv("JWT_KEY_PATH")
 	jwtSecretPath := os.Getenv("JWT_SECRET_PATH")
 	sesAccessKey := os.Getenv("AWS_SES_ACCESS_KEY")
@@ -61,9 +56,6 @@ func Init() (UserService, *auth.JWTService, error) {
 		log.Fatalf("Error starting mongo client: Error: %v\n", err)
 	}
 	repository := repo.NewMongoUserRepository(mc, mongoDBName)
-
-	// Init rpc client
-	rpcClient := usrRpc.NewRPCClient(placesHost, rpcPwd)
 
 	// Init jwt service
 	jwtKey, err := ioutil.ReadFile(jwtKeyPath)
@@ -96,7 +88,6 @@ func Init() (UserService, *auth.JWTService, error) {
 		Logger: logger,
 		Usecase: &Usecase{
 			Repository: repository,
-			RPC:        rpcClient,
 			Email:      emailClient,
 			usersHost:  usersHost,
 		},

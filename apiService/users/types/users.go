@@ -12,7 +12,6 @@ type User struct {
 	EncryptedPassword string     `bson:"pwd" json:"-"`
 	Confirmed         bool       `bson:"conf" json:"confirmed"`
 	LastLoggedIn      *time.Time `bson:"lstLogIn" json:"lastLoggedIn"`
-	CheckIns          []*CheckIn `bson:"chks" json:"checkIns"`
 }
 
 func (u User) GetAuthables() (id, email string, conf bool) {

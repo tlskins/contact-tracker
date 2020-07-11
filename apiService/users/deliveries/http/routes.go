@@ -75,32 +75,6 @@ func (d *handler) SignIn() http.HandlerFunc {
 	}
 }
 
-func (d *handler) CheckIn() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		req := &t.CheckInReq{}
-		api.ParseHTTPParams(r, req)
-
-		id := chi.URLParam(r, "id")
-		usr, err := d.usecase.CheckIn(ctx, id, req)
-		api.CheckHTTPError(http.StatusInternalServerError, err)
-		api.WriteJSON(w, http.StatusOK, usr)
-	}
-}
-
-func (d *handler) CheckOut() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		req := &t.CheckOutReq{}
-		api.ParseHTTPParams(r, req)
-		id := chi.URLParam(r, "id")
-
-		usr, err := d.usecase.CheckOut(ctx, id, req)
-		api.CheckHTTPError(http.StatusInternalServerError, err)
-		api.WriteJSON(w, http.StatusOK, usr)
-	}
-}
-
 func (d *handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -150,8 +124,6 @@ func Routes() (*chi.Mux, error) {
 	r.Get("/users", j.AuthorizeHandler(h.GetAll()))
 	r.Get("/users/{id}", j.AuthorizeHandler(h.Get()))
 	r.Put("/users/{id}", j.AuthorizeHandler(h.Update()))
-	r.Put("/users/{id}/check_in", j.AuthorizeHandler(h.CheckIn()))
-	r.Put("/users/{id}/check_out", j.AuthorizeHandler(h.CheckOut()))
 	r.Delete("/users/{id}", j.AuthorizeHandler(h.Delete()))
 	r.Post("/users/login", h.SignIn())
 	r.Get("/users/{id}/confirm", h.Confirm())

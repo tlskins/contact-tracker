@@ -70,16 +70,6 @@ func (h handler) router() func(context.Context, api.Request) (api.Response, erro
 			return h.SignIn(ctx, &req)
 		} else if api.MatchesRoute("/users/{id}/confirm", "GET", &req) {
 			return h.Confirm(ctx, &req)
-		} else if api.MatchesRoute("/users/{id}/check_in", "PUT", &req) {
-			if err := isAuthorized(ctx); err != nil {
-				return api.Fail(err, http.StatusUnauthorized)
-			}
-			return h.CheckIn(ctx, &req)
-		} else if api.MatchesRoute("/users/{id}/check_out", "PUT", &req) {
-			if err := isAuthorized(ctx); err != nil {
-				return api.Fail(err, http.StatusUnauthorized)
-			}
-			return h.CheckOut(ctx, &req)
 		} else {
 			return api.Fail(errors.New("not found"), http.StatusNotFound)
 		}
@@ -122,42 +112,6 @@ func (h *handler) Update(ctx context.Context, req *api.Request) (resp api.Respon
 	update.ID = id
 	var user *t.User
 	if user, err = h.usecase.Update(ctx, &update); err != nil {
-		return api.Fail(err, http.StatusInternalServerError)
-	}
-	return api.Success(user, http.StatusOK)
-}
-
-// CheckIn a single user
-func (h *handler) CheckIn(ctx context.Context, r *api.Request) (resp api.Response, err error) {
-	var id string
-	if id, err = api.GetPathParam("id", r); err != nil {
-		return api.Fail(err, http.StatusInternalServerError)
-	}
-	body := []byte(r.Body)
-	var req t.CheckInReq
-	if err := json.Unmarshal(body, &req); err != nil {
-		return api.Fail(err, http.StatusInternalServerError)
-	}
-	var user *t.User
-	if user, err = h.usecase.CheckIn(ctx, id, &req); err != nil {
-		return api.Fail(err, http.StatusInternalServerError)
-	}
-	return api.Success(user, http.StatusOK)
-}
-
-// CheckOut a single user
-func (h *handler) CheckOut(ctx context.Context, r *api.Request) (resp api.Response, err error) {
-	var id string
-	if id, err = api.GetPathParam("id", r); err != nil {
-		return api.Fail(err, http.StatusInternalServerError)
-	}
-	body := []byte(r.Body)
-	var req t.CheckOutReq
-	if err := json.Unmarshal(body, &req); err != nil {
-		return api.Fail(err, http.StatusInternalServerError)
-	}
-	var user *t.User
-	if user, err = h.usecase.CheckOut(ctx, id, &req); err != nil {
 		return api.Fail(err, http.StatusInternalServerError)
 	}
 	return api.Success(user, http.StatusOK)

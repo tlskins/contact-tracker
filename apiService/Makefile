@@ -22,3 +22,6 @@ run-local-users:
 
 run-local-places:
 	PLACES_PORT=8006 go run cmd/server/places/main.go
+
+run-local-check-ins:
+	PLACES_PORT=8007 go run cmd/server/check-ins/main.go

@@ -14,6 +14,11 @@ type Request events.APIGatewayProxyRequest
 
 type Response events.APIGatewayProxyResponse
 
+var corsHeaders = map[string]string{
+	"Access-Control-Allow-Origin":      "http://localhost:19006",
+	"Access-Control-Allow-Credentials": "true",
+}
+
 // Fail returns an internal server error with the error message
 func Fail(err error, status int) (Response, error) {
 	e := make(map[string]string, 0)
@@ -25,6 +30,7 @@ func Fail(err error, status int) (Response, error) {
 
 	return Response{
 		Body:       string(body),
+		Headers:    corsHeaders,
 		StatusCode: status,
 	}, nil
 }
@@ -37,11 +43,8 @@ func Success(data interface{}, status int) (Response, error) {
 	}
 
 	return Response{
-		Body: string(body),
-		Headers: map[string]string{
-			"Access-Control-Allow-Origin":      "*",
-			"Access-Control-Allow-Credentials": "true",
-		},
+		Body:       string(body),
+		Headers:    corsHeaders,
 		StatusCode: status,
 	}, nil
 }
@@ -52,14 +55,12 @@ func SuccessWithCookie(data interface{}, status int, cookieStr string) (Response
 		return Fail(err, http.StatusInternalServerError)
 	}
 
+	corsHeaders["Set-Cookie"] = fmt.Sprintf("%s; Secure; SameSite=None; Path=/", cookieStr)
+
 	return Response{
 		Body:       string(body),
 		StatusCode: status,
-		Headers: map[string]string{
-			"Set-Cookie":                       cookieStr,
-			"Access-Control-Allow-Origin":      "*",
-			"Access-Control-Allow-Credentials": "true",
-		},
+		Headers:    corsHeaders,
 	}, nil
 }
 

@@ -10,12 +10,15 @@ import (
 	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/gorilla/schema"
 
 	chk "github.com/contact-tracker/apiService/check-ins"
 	t "github.com/contact-tracker/apiService/check-ins/types"
 	api "github.com/contact-tracker/apiService/pkg/api/lambda"
 	"github.com/contact-tracker/apiService/pkg/auth"
 )
+
+var decoder = schema.NewDecoder()
 
 type handler struct {
 	usecase chk.CheckInService
@@ -80,10 +83,13 @@ func (h *handler) Get(ctx context.Context, req *api.Request) (resp api.Response,
 
 // GetAll check ins
 func (h *handler) GetAll(ctx context.Context, req *api.Request) (resp api.Response, err error) {
-	body := []byte(req.Body)
 	var query t.GetCheckIns
-	if err := json.Unmarshal(body, &query); err != nil {
-		return api.Fail(err, http.StatusInternalServerError)
+	parsed := make(map[string][]string)
+	for k, v := range req.QueryStringParameters {
+		parsed[k] = []string{v}
+	}
+	if err := decoder.Decode(query, parsed); err != nil {
+		api.Fail(err, http.StatusInternalServerError)
 	}
 	var checkIns []*t.CheckIn
 	if checkIns, err = h.usecase.GetAll(ctx, &query); err != nil {

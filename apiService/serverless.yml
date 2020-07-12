@@ -96,7 +96,9 @@ functions:
       - http:
           path: /users/login
           method: POST
-          cors: true
+          cors:
+            origin: http://localhost:19006
+            allowCredentials: true
       - http:
           path: /users/{id}/confirm
           method: GET
@@ -153,7 +155,9 @@ functions:
       - http:
           path: /check-ins
           method: GET
-          cors: true
+          cors:
+            origin: http://localhost:19006
+            allowCredentials: true
       - http:
           path: /check-ins/{id}
           method: GET

@@ -26,8 +26,7 @@ type handler struct {
 }
 
 func isAuthorized(ctx context.Context) error {
-	claims := auth.ClaimsFromContext(ctx)
-	if claims == nil || claims.Subject == "" {
+	if authorized, _ := auth.ClaimsFromContext(ctx); !authorized {
 		return errors.New("Unauthorized")
 	}
 	return nil

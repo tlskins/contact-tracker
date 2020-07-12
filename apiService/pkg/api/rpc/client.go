@@ -59,10 +59,7 @@ func (c *HTTPRPCClient) HttpRequest(method, path string, data, out interface{}) 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.AddCookie(&http.Cookie{
-		Name:  auth.RPCAccessTokenKey,
-		Value: c.rpcPwd,
-	})
+	req.Header.Set(auth.RPCAccessTokenKey, c.rpcPwd)
 
 	resp, err := c.c.Do(req)
 	if err != nil {

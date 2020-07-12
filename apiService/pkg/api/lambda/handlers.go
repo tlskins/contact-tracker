@@ -15,7 +15,7 @@ type Request events.APIGatewayProxyRequest
 type Response events.APIGatewayProxyResponse
 
 var corsHeaders = map[string]string{
-	"Access-Control-Allow-Origin":      "http://localhost:19006",
+	"Access-Control-Allow-Origin":      "*",
 	"Access-Control-Allow-Credentials": "true",
 }
 

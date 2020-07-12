@@ -23,8 +23,7 @@ type handler struct {
 }
 
 func isAuthorized(ctx context.Context) error {
-	claims := auth.ClaimsFromContext(ctx)
-	if claims == nil || claims.Subject == "" {
+	if authorized, _ := auth.ClaimsFromContext(ctx); !authorized {
 		return errors.New("Unauthorized")
 	}
 	return nil
@@ -154,16 +153,10 @@ func (h *handler) SignIn(ctx context.Context, r *api.Request) (resp api.Response
 	if user, err = h.usecase.SignIn(ctx, &req); err != nil {
 		return api.Fail(err, http.StatusInternalServerError)
 	}
-	var accessToken string
-	if accessToken, err = h.jwt.GenAccessToken(user); err != nil {
+	if user.AuthToken, err = h.jwt.GenAccessToken(user); err != nil {
 		return api.Fail(err, http.StatusInternalServerError)
 	}
-	cookie := &http.Cookie{
-		Name:  auth.AccessTokenKey,
-		Value: accessToken,
-		// Expires: expirationTime,
-	}
-	return api.SuccessWithCookie(user, http.StatusOK, cookie.String())
+	return api.Success(user, http.StatusCreated)
 }
 
 // Confirm a user

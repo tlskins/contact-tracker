@@ -98,21 +98,33 @@ func (j *JWTService) AuthorizeHandler(next http.Handler) http.HandlerFunc {
 }
 
 func (j *JWTService) IncludeLambdaAuth(ctx context.Context, req *apiLambda.Request) (context.Context, error) {
-	if cookieVal, ok := req.Headers["Cookie"]; ok {
-		val := strings.ReplaceAll(cookieVal, fmt.Sprintf("%s=", AccessTokenKey), "")
+	authVal := ""
+	if val, ok := req.Headers["Cookie"]; ok {
+		authVal = strings.ReplaceAll(val, fmt.Sprintf("%s=", AccessTokenKey), "")
+	} else if val, ok := req.Headers["Authorization"]; ok {
+		authVal = strings.TrimPrefix(val, "Bearer ")
+	}
+	if authVal != "" {
 		var err error
 		var claims *CustomClaims
-		if claims, err = j.Decode(val); err != nil {
+		if claims, err = j.Decode(authVal); err != nil {
 			return ctx, err
 		}
 		ctx = context.WithValue(ctx, AccessTokenKey, claims)
 	}
+	// if val, ok := req.Headers[RPCAccessTokenKey]; ok && val == j.rpcPwd {
+	// 	ctx = context.WithValue(ctx, RPCAccessTokenKey, val)
+	// }
+	ctx = context.WithValue(ctx, RPCAccessTokenKey, j.rpcPwd)
 	return ctx, nil
 }
 
-func ClaimsFromContext(ctx context.Context) *CustomClaims {
-	if ctx.Value(AccessTokenKey) == nil {
-		return nil
+func ClaimsFromContext(ctx context.Context) (authorized bool, claims *CustomClaims) {
+	if ctx.Value(AccessTokenKey) != nil {
+		return true, ctx.Value(AccessTokenKey).(*CustomClaims)
 	}
-	return ctx.Value(AccessTokenKey).(*CustomClaims)
+	if ctx.Value(RPCAccessTokenKey) != nil {
+		return true, nil
+	}
+	return false, nil
 }

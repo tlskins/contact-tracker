@@ -12,6 +12,7 @@ type User struct {
 	EncryptedPassword string     `bson:"pwd" json:"-"`
 	Confirmed         bool       `bson:"conf" json:"confirmed"`
 	LastLoggedIn      *time.Time `bson:"lstLogIn" json:"lastLoggedIn"`
+	AuthToken         string     `bson:"-" json:"authToken"`
 }
 
 func (u User) GetAuthables() (id, email string, conf bool) {

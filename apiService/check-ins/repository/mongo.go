@@ -63,12 +63,18 @@ func (r *MongoCheckInRepository) GetAll(_ context.Context, userID, placeID *stri
 	return
 }
 
-func (r *MongoCheckInRepository) LastCheckIn(_ context.Context, userID, placeID string) (resp *t.CheckIn, err error) {
+func (r *MongoCheckInRepository) LastCheckIn(_ context.Context, userID, placeID string) (*t.CheckIn, error) {
 	sess, c := r.C(ColCheckIns)
 	defer sess.Close()
 
-	err = c.Find(m.M{"place.id": placeID, "user.id": userID, "out": nil}).Sort("-in").Limit(1).All(&resp)
-	return
+	var resp []*t.CheckIn
+	if err := c.Find(m.M{"place.id": placeID, "user.id": userID, "out": nil}).Sort("-in").Limit(1).All(&resp); err != nil {
+		return nil, err
+	}
+	if len(resp) > 0 {
+		return resp[0], nil
+	}
+	return nil, nil
 }
 
 func (r *MongoCheckInRepository) Create(_ context.Context, checkIn *t.CheckIn) (*t.CheckIn, error) {
@@ -85,7 +91,7 @@ func (r *MongoCheckInRepository) CheckOut(_ context.Context, id string) (*t.Chec
 	defer sess.Close()
 
 	var resp t.CheckIn
-	err := m.Update(c, &resp, m.M{"_id": id}, m.M{"out": time.Now()})
+	err := m.Update(c, &resp, m.M{"_id": id}, m.M{"$set": m.M{"out": time.Now()}})
 	return &resp, err
 }
 

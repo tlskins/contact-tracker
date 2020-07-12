@@ -76,8 +76,6 @@ func (j *JWTService) AuthorizeHandler(next http.Handler) http.HandlerFunc {
 			apiHttp.CheckHTTPError(http.StatusUnauthorized, err)
 		}
 
-		fmt.Printf("rpcCookie: %+v\n\n", rpcCookie)
-
 		if rpcCookie != nil && rpcCookie.Value == j.rpcPwd {
 			ctx = context.WithValue(ctx, RPCAccessTokenKey, rpcCookie.Value)
 		} else {
@@ -102,7 +100,11 @@ func (j *JWTService) IncludeLambdaAuth(ctx context.Context, req *apiLambda.Reque
 	if val, ok := req.Headers["Cookie"]; ok {
 		authVal = strings.ReplaceAll(val, fmt.Sprintf("%s=", AccessTokenKey), "")
 	} else if val, ok := req.Headers["Authorization"]; ok {
-		authVal = strings.TrimPrefix(val, "Bearer ")
+		if val == j.rpcPwd {
+			ctx = context.WithValue(ctx, RPCAccessTokenKey, val)
+		} else {
+			authVal = strings.TrimPrefix(val, "Bearer ")
+		}
 	}
 	if authVal != "" {
 		var err error
@@ -112,10 +114,6 @@ func (j *JWTService) IncludeLambdaAuth(ctx context.Context, req *apiLambda.Reque
 		}
 		ctx = context.WithValue(ctx, AccessTokenKey, claims)
 	}
-	// if val, ok := req.Headers[RPCAccessTokenKey]; ok && val == j.rpcPwd {
-	// 	ctx = context.WithValue(ctx, RPCAccessTokenKey, val)
-	// }
-	ctx = context.WithValue(ctx, RPCAccessTokenKey, j.rpcPwd)
 	return ctx, nil
 }
 

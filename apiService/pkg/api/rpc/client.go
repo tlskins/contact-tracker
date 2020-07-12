@@ -9,8 +9,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"time"
-
-	"github.com/contact-tracker/apiService/pkg/auth"
 )
 
 // HTTPRPCClient - Make RPC calls via HTTP
@@ -59,7 +57,7 @@ func (c *HTTPRPCClient) HttpRequest(method, path string, data, out interface{}) 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set(auth.RPCAccessTokenKey, c.rpcPwd)
+	req.Header.Set("Authorization", c.rpcPwd)
 
 	resp, err := c.c.Do(req)
 	if err != nil {

@@ -1,7 +1,7 @@
-# Contact Tracker Mobile App
-Contact tracking mobile app for store owners.
+# Contact Tracker App
+Contact tracking app for mobile stores to manage the contact tracing for customers in their store. Customers will download an Android or Iphone mobile app and register their email with the app. Stores will use the same mobile app to then use their mobile cameras to scan the customer's QR code on their profile to log in and log out the user to track which other customers were logged into their store at the same time to determine their contact tracing. Store owners have a Histories screen which they can see prior users at their store as well as the other customers they may have had contact with.
 
-## Mobile App
+# Mobile App
 Iphone and Android compatible mobile app written using expo, react-native, and typescript. Expo is a framework and platform for creating and distributing react native applications. To test an Expo app the user will want to decide what host(s) and client(s) you will want to use which can allow you to test different distributions on different mobile devices.
 
 ## App Host
@@ -20,8 +20,7 @@ Test on Iphone simulator using Xcode
 https://docs.expo.io/workflow/ios-simulator/
 
 
-
-# Contact Tracker API
+# Backend API
 The API for this app is a go serverless microservice architecture with MongoDB Atlas and AWS as the cloud provider. This backend has been designed using the clean architecture in mind so the use cases have no dependencies on the database, cloud provider, or delivery method. This repo has both http and serverless deliveries available so you can run your own Go microservice web servers or use your own AWS Lambdas.
 
 

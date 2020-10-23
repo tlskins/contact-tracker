@@ -19,6 +19,7 @@ var (
 
 type repository interface {
 	Get(ctx context.Context, id string) (*t.CheckIn, error)
+	GetHistory(_ context.Context, placeID string) ([]*t.CheckInHistory, error)
 	GetAll(ctx context.Context, userID, placeID *string, start, end *time.Time) ([]*t.CheckIn, error)
 	LastCheckIn(ctx context.Context, userID, placeID string) (*t.CheckIn, error)
 	Create(ctx context.Context, checkIn *t.CheckIn) (*t.CheckIn, error)
@@ -44,6 +45,15 @@ func (u *Usecase) Get(ctx context.Context, id string) (*t.CheckIn, error) {
 		return nil, errors.Wrap(err, "error fetching a single check in")
 	}
 	return checkIn, nil
+}
+
+// GetHistory gets a place's check in history and contacts
+func (u *Usecase) GetHistory(ctx context.Context, placeID string) (history []*t.CheckInHistory, err error) {
+	history = []*t.CheckInHistory{}
+	if history, err = u.Repository.GetHistory(ctx, placeID); err != nil {
+		return nil, errors.Wrap(err, "error fetching check ins")
+	}
+	return
 }
 
 // GetAll gets all check ins

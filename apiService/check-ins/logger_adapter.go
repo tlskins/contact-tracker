@@ -31,6 +31,15 @@ func (a *LoggerAdapter) Get(ctx context.Context, id string) (*t.CheckIn, error) 
 	return checkIn, err
 }
 
+// GetHistory gets checkin history
+func (a *LoggerAdapter) GetHistory(ctx context.Context, placeID string) ([]*t.CheckInHistory, error) {
+	defer a.Logger.Sync()
+	a.Logger.Info("getting check in history")
+	history, err := a.Usecase.GetHistory(ctx, placeID)
+	a.logErr(err)
+	return history, err
+}
+
 // GetAll gets all checkIns
 func (a *LoggerAdapter) GetAll(ctx context.Context, req *t.GetCheckIns) ([]*t.CheckIn, error) {
 	defer a.Logger.Sync()

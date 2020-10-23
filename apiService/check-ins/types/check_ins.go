@@ -21,6 +21,15 @@ type CreateCheckIn struct {
 	PlaceID string `bson:"placeId" json:"placeId" validate:"required"`
 }
 
+type CheckInHistory struct {
+	ID       string     `bson:"id" json:"id"`
+	In       *time.Time `bson:"in" json:"in"`
+	Out      *time.Time `bson:"out" json:"out"`
+	Place    *Place     `bson:"place" json:"place"`
+	User     *User      `bson:"user" json:"user"`
+	Contacts []*CheckIn `bson:"contacts" json:"contacts"`
+}
+
 // CheckIn - check in and out
 type CheckIn struct {
 	ID    string     `bson:"id" json:"id"`

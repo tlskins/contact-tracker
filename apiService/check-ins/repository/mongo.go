@@ -41,6 +41,30 @@ func (r *MongoCheckInRepository) Get(_ context.Context, id string) (resp *t.Chec
 	return
 }
 
+func (r *MongoCheckInRepository) GetHistory(_ context.Context, placeID string) (resp []*t.CheckInHistory, err error) {
+	sess, c := r.C(ColCheckIns)
+	defer sess.Close()
+
+	resp = []*t.CheckInHistory{}
+	if err = m.Find(c, &resp, m.M{"$match": m.M{"place.id": placeID}}); err != nil {
+		return
+	}
+	for _, check := range resp {
+		contacts := []*t.CheckIn{}
+		if err = m.Find(c, &contacts, m.M{"$match": m.M{
+			"place.id": placeID,
+			"$or": []m.M{
+				{"in": m.M{"$lte": check.Out}},
+				{"out": m.M{"$gte": check.In}},
+			},
+		}}); err != nil {
+			return
+		}
+		check.Contacts = contacts
+	}
+	return
+}
+
 func (r *MongoCheckInRepository) GetAll(_ context.Context, userID, placeID *string, start, end *time.Time) (resp []*t.CheckIn, err error) {
 	sess, c := r.C(ColCheckIns)
 	defer sess.Close()

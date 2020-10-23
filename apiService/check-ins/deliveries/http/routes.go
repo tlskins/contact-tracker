@@ -32,6 +32,16 @@ func (d *handler) Get() http.HandlerFunc {
 	}
 }
 
+func (d *handler) GetHistory() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		placeID := chi.URLParam(r, "placeId")
+		resp, err := d.usecase.GetHistory(ctx, placeID)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
+		api.WriteJSON(w, http.StatusOK, resp)
+	}
+}
+
 func (d *handler) GetAll() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -68,6 +78,7 @@ func Routes() (*chi.Mux, error) {
 	r := api.NewRouter()
 
 	r.Get("/check-ins/{id}", j.AuthorizeHandler(h.Get()))
+	r.Get("/check-ins/history/{placeId}", j.AuthorizeHandler(h.GetHistory()))
 	r.Get("/check-ins", j.AuthorizeHandler(h.GetAll()))
 	r.Post("/check-ins", j.AuthorizeHandler(h.CheckIn()))
 

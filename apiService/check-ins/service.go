@@ -21,6 +21,7 @@ import (
 // CheckInService - is the top level signature of this service
 type CheckInService interface {
 	Get(ctx context.Context, id string) (*t.CheckIn, error)
+	GetHistory(ctx context.Context, placeID string) ([]*t.CheckInHistory, error)
 	GetAll(ctx context.Context, req *t.GetCheckIns) ([]*t.CheckIn, error)
 	CheckIn(ctx context.Context, req *t.CreateCheckIn) (resp *t.CheckIn, err error)
 }

@@ -3,7 +3,6 @@ package users
 import (
 	"context"
 	// "flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	// "os"
@@ -31,8 +30,6 @@ type UserService interface {
 // Init sets up an instance of this domains
 // usecase, pre-configured with the dependencies.
 func Init(mongoDBName, mongoHost, mongoUser, mongoPwd, usersHost, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd string) (UserService, *auth.JWTService, error) {
-	fmt.Println("Init Users Mongo Service...")
-
 	// cfgPath := flag.String("config", "config.dev.yml", "path for yaml config")
 	// flag.Parse()
 	// godotenv.Load(*cfgPath)

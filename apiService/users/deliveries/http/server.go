@@ -102,7 +102,7 @@ func (d *handler) Confirm() http.HandlerFunc {
 }
 
 func NewServer(port, mongoDBName, mongoHost, mongoPlace, mongoPwd, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd string) (server *api.Server, err error) {
-	fmt.Println("Starting user http routes...")
+	fmt.Printf("Listening for users on %s...\n", port)
 
 	usecase, j, err := users.Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, port, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd)
 	if err != nil {

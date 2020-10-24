@@ -3,7 +3,6 @@ package checkins
 import (
 	"context"
 	// "flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	// "os"
@@ -29,8 +28,6 @@ type CheckInService interface {
 // Init sets up an instance of this domains
 // usecase, pre-configured with the dependencies.
 func Init(mongoDBName, mongoHost, mongoCheckIn, mongoPwd, usersHost, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd string) (CheckInService, *auth.JWTService, error) {
-	fmt.Println("Init CheckIns Mongo Service...")
-
 	// cfgPath := flag.String("config", "config.dev.yml", "path for yaml config")
 	// flag.Parse()
 	// godotenv.Load(*cfgPath)

@@ -3,7 +3,6 @@ package places
 import (
 	"context"
 	// "flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	// "os"
@@ -32,8 +31,6 @@ type PlaceService interface {
 // Init sets up an instance of this domains
 // usecase, pre-configured with the dependencies.
 func Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd string) (PlaceService, *auth.JWTService, error) {
-	fmt.Println("Init Places Mongo Service...")
-
 	// cfgPath := flag.String("config", "config.dev.yml", "path for yaml config")
 	// flag.Parse()
 	// godotenv.Load(*cfgPath)

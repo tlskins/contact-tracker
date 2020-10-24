@@ -65,7 +65,7 @@ func (d *handler) CheckIn() http.HandlerFunc {
 }
 
 func NewServer(port, mongoDBName, mongoHost, mongoCheckIn, mongoPwd, usersHost, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd string) (server *api.Server, err error) {
-	fmt.Println("Starting check ins http routes...")
+	fmt.Printf("Listening for check-ins on %s...\n", port)
 
 	usecase, j, err := chk.Init(mongoDBName, mongoHost, mongoCheckIn, mongoPwd, usersHost, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd)
 	if err != nil {

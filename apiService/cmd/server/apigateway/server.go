@@ -1,6 +1,7 @@
 package apigateway
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -12,6 +13,8 @@ import (
 )
 
 func NewServer(port, checkInsPort, placesPort, usersPort string) (server *api.Server) {
+	fmt.Printf("Listening for apigateway on %s...\n", port)
+
 	server = api.NewServer(port)
 	r := server.Router
 	r.Mount("/check-ins", newProxyRouter("http://localhost:"+checkInsPort, true))

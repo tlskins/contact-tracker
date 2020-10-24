@@ -102,7 +102,7 @@ func (d *handler) Confirm() http.HandlerFunc {
 }
 
 func NewServer(port, mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd string) (server *api.Server, err error) {
-	fmt.Println("Starting place http routes...")
+	fmt.Printf("Listening for places on %s...\n", port)
 
 	usecase, j, err := places.Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd)
 	if err != nil {

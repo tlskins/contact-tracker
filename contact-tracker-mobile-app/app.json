@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "contact-tracker-mobile-app",
+    "slug": "contact-tracker-mobile-app",
+    "description": "Serverless contact tracking mobile app for store owners.",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "web": {
+      "favicon": "./assets/images/favicon.png"
+    },
+    "extra": {
+      "apiHost": "https://14acde804e63.ngrok.io"
+    }
+  }
+}

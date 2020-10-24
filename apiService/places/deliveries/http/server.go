@@ -17,7 +17,7 @@ import (
 const fiveSecondsTimeout = time.Second * 5
 
 type handler struct {
-	usecase places.PlaceService
+	Usecase places.PlaceService
 	jwt     *auth.JWTService
 }
 
@@ -25,7 +25,7 @@ func (d *handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		id := chi.URLParam(r, "id")
-		place, err := d.usecase.Get(ctx, id)
+		place, err := d.Usecase.Get(ctx, id)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, place)
 	}
@@ -34,7 +34,7 @@ func (d *handler) Get() http.HandlerFunc {
 func (d *handler) GetAll() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		places, err := d.usecase.GetAll(ctx)
+		places, err := d.Usecase.GetAll(ctx)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, places)
 	}
@@ -47,7 +47,7 @@ func (d *handler) Update() http.HandlerFunc {
 		api.ParseHTTPParams(r, req)
 
 		req.ID = chi.URLParam(r, "id")
-		resp, err := d.usecase.Update(ctx, req)
+		resp, err := d.Usecase.Update(ctx, req)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, resp)
 	}
@@ -58,7 +58,7 @@ func (d *handler) Create() http.HandlerFunc {
 		ctx := r.Context()
 		req := &t.CreatePlace{}
 		api.ParseHTTPParams(r, req)
-		place, err := d.usecase.Create(ctx, req)
+		place, err := d.Usecase.Create(ctx, req)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		place.AuthToken, err = d.jwt.GenAccessToken(place)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
@@ -71,7 +71,7 @@ func (d *handler) Delete() http.HandlerFunc {
 		ctx := r.Context()
 		id := chi.URLParam(r, "id")
 
-		err := d.usecase.Delete(ctx, id)
+		err := d.Usecase.Delete(ctx, id)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, nil)
 	}
@@ -82,7 +82,7 @@ func (d *handler) SignIn() http.HandlerFunc {
 		ctx := r.Context()
 		req := &t.SignInReq{}
 		api.ParseHTTPParams(r, req)
-		place, err := d.usecase.SignIn(ctx, req)
+		place, err := d.Usecase.SignIn(ctx, req)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		place.AuthToken, err = d.jwt.GenAccessToken(place)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
@@ -95,22 +95,22 @@ func (d *handler) Confirm() http.HandlerFunc {
 		ctx := r.Context()
 		id := chi.URLParam(r, "id")
 
-		err := d.usecase.Confirm(ctx, id)
+		err := d.Usecase.Confirm(ctx, id)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, nil)
 	}
 }
 
-func NewServer(port, mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd string) (server *api.Server, err error) {
+func NewServer(port, mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd string) (server *api.Server, h *handler, err error) {
 	fmt.Printf("Listening for places on %s...\n", port)
 
-	usecase, j, err := places.Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd)
+	Usecase, j, err := places.Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	h := &handler{
-		usecase: usecase,
+	h = &handler{
+		Usecase: Usecase,
 		jwt:     j,
 	}
 

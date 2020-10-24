@@ -94,6 +94,7 @@ const connector = connect(
           console.log("place login resp", resp)
           if (resp?.data) {
             const { data } = resp
+            setAuthToken(data.authToken)
             dispatch(
               setProfile({
                 ...data,

@@ -50,7 +50,6 @@ const connector = connect(mapState, mapDispatch)
 
 const ScannerScreen = (props: ConnectedProps<typeof connector>) => {
   const { checkIn, profile } = props
-  console.log("scanner profile", profile)
   const [hasCameraPermission, setCameraPermission] = useState(
     null as permission
   )

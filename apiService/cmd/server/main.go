@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bufio"
+	"context"
 	"flag"
+	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 
@@ -44,24 +48,61 @@ func main() {
 		rpcPwd              = os.Getenv("RPC_AUTH_PWD")
 	)
 
-	chkServer, err := chk.NewServer(checkInsPort, checkInsMongoDBName, checkInsMongoHost, checkInsMongo, checkInsMongoPwd, "127.0.0.1:"+usersPort, "127.0.0.1:"+placesPort, jwtKeyPath, jwtSecretPath, rpcPwd)
+	chkServer, err := chk.NewServer(checkInsPort, checkInsMongoDBName, checkInsMongoHost, checkInsMongo, checkInsMongoPwd, "http://localhost:"+usersPort, "http://localhost:"+placesPort, jwtKeyPath, jwtSecretPath, rpcPwd)
 	if err != nil {
 		log.Panic(err)
 	}
 	go chkServer.Start()
 
-	placesServer, err := places.NewServer(placesPort, placesMongoDBName, placesMongoHost, placesMongo, placesMongoPwd, "127.0.0.1:"+placesPort, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd)
+	placesServer, placesHandler, err := places.NewServer(placesPort, placesMongoDBName, placesMongoHost, placesMongo, placesMongoPwd, "http://localhost:"+placesPort, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd)
 	if err != nil {
 		log.Panic(err)
 	}
 	go placesServer.Start()
 
-	usersServer, err := users.NewServer(usersPort, usersMongoDBName, usersMongoHost, usersMongo, usersMongoPwd, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd)
+	usersServer, usersHandler, err := users.NewServer(usersPort, usersMongoDBName, usersMongoHost, usersMongo, usersMongoPwd, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd)
 	if err != nil {
 		log.Panic(err)
 	}
 	go usersServer.Start()
 
 	apigatewayServer := gateway.NewServer(apigatewayPort, checkInsPort, placesPort, usersPort)
-	apigatewayServer.Start()
+	go apigatewayServer.Start()
+
+	// CLI
+
+	ctx := context.TODO()
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("Contact Tracker CLI")
+	fmt.Println("---------------------")
+
+	for {
+		fmt.Print("-> ")
+		command, _ := reader.ReadString('\n')
+		command = strings.Replace(command, "\n", "", -1)
+
+		if strings.Compare("stores", command) == 0 {
+			places, err := placesHandler.Usecase.GetAll(ctx)
+			if err != nil {
+				fmt.Printf("Error: %s\n", err)
+				continue
+			}
+			fmt.Printf("%d store(s)\n", len(places))
+			for _, place := range places {
+				fmt.Printf("%s - %s\n", place.Name, place.Email)
+			}
+		} else if strings.Compare("customers", command) == 0 {
+			users, err := usersHandler.Usecase.GetAll(ctx)
+			if err != nil {
+				fmt.Printf("Error: %s\n", err)
+				continue
+			}
+			fmt.Printf("%d customer(s)\n", len(users))
+			for _, user := range users {
+				fmt.Printf("%s - %s\n", user.Name, user.Email)
+			}
+		} else {
+			fmt.Printf("Invalid command\n")
+		}
+	}
 }

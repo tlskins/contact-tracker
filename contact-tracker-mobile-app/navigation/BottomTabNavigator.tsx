@@ -32,7 +32,6 @@ const connector = connect(mapState, undefined)
 const BottomTabNavigator = (props: ConnectedProps<typeof connector>) => {
   const { profile } = props
   const colorScheme = useColorScheme()
-  console.log("navigator", profile)
 
   if (profile === null) {
     return (
@@ -82,12 +81,21 @@ const BottomTabNavigator = (props: ConnectedProps<typeof connector>) => {
   } else {
     return (
       <BottomTab.Navigator
-        initialRouteName="History"
+        initialRouteName="Profile"
         tabBarOptions={{ activeTintColor: Colors[colorScheme].tint }}
       >
-        <BottomTab.Screen
+        {/* <BottomTab.Screen
           name="History"
           component={HistoryScreen}
+          options={{
+            tabBarIcon: ({ color }) => (
+              <TabBarMaterialIcon name="account-circle" color={color} />
+            ),
+          }}
+        /> */}
+        <BottomTab.Screen
+          name="Profile"
+          component={ProfileNavigator}
           options={{
             tabBarIcon: ({ color }) => (
               <TabBarMaterialIcon name="account-circle" color={color} />

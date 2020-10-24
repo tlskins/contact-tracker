@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	api "github.com/contact-tracker/apiService/pkg/api/http"
-	"github.com/contact-tracker/apiService/pkg/auth"
 	"github.com/go-chi/chi"
 
+	api "github.com/contact-tracker/apiService/pkg/api/http"
+	"github.com/contact-tracker/apiService/pkg/auth"
 	"github.com/contact-tracker/apiService/places"
 	t "github.com/contact-tracker/apiService/places/types"
 )
@@ -58,10 +58,11 @@ func (d *handler) Create() http.HandlerFunc {
 		ctx := r.Context()
 		req := &t.CreatePlace{}
 		api.ParseHTTPParams(r, req)
-
-		resp, err := d.usecase.Create(ctx, req)
+		place, err := d.usecase.Create(ctx, req)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
-		api.WriteJSON(w, http.StatusOK, resp)
+		place.AuthToken, err = d.jwt.GenAccessToken(place)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
+		api.WriteJSON(w, http.StatusOK, place)
 	}
 }
 
@@ -81,18 +82,10 @@ func (d *handler) SignIn() http.HandlerFunc {
 		ctx := r.Context()
 		req := &t.SignInReq{}
 		api.ParseHTTPParams(r, req)
-
 		place, err := d.usecase.SignIn(ctx, req)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
-		accessToken, err := d.jwt.GenAccessToken(place)
+		place.AuthToken, err = d.jwt.GenAccessToken(place)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
-
-		http.SetCookie(w, &http.Cookie{
-			Name:  auth.AccessTokenKey,
-			Value: accessToken,
-			// Expires: expirationTime,
-		})
-
 		api.WriteJSON(w, http.StatusOK, place)
 	}
 }
@@ -108,17 +101,21 @@ func (d *handler) Confirm() http.HandlerFunc {
 	}
 }
 
-// Routes -
-func Routes() (*chi.Mux, error) {
+func NewServer(port, mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd string) (server *api.Server, err error) {
 	fmt.Println("Starting place http routes...")
-	usecase, j, err := places.Init()
+
+	usecase, j, err := places.Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	h := &handler{usecase, j}
-	r := api.NewRouter()
+	h := &handler{
+		usecase: usecase,
+		jwt:     j,
+	}
 
+	server = api.NewServer(port)
+	r := server.Router
 	r.Post("/places", h.Create())
 	r.Get("/places", j.AuthorizeHandler(h.GetAll()))
 	r.Get("/places/{id}", j.AuthorizeHandler(h.Get()))
@@ -127,5 +124,5 @@ func Routes() (*chi.Mux, error) {
 	r.Post("/places/login", h.SignIn())
 	r.Get("/places/{id}/confirm", h.Confirm())
 
-	return r, nil
+	return
 }

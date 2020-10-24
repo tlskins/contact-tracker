@@ -2,11 +2,11 @@ package checkins
 
 import (
 	"context"
-	"flag"
+	// "flag"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
+	// "os"
 
 	repo "github.com/contact-tracker/apiService/check-ins/repository"
 	chkRpc "github.com/contact-tracker/apiService/check-ins/rpc"
@@ -14,7 +14,7 @@ import (
 	"github.com/contact-tracker/apiService/pkg/auth"
 	m "github.com/contact-tracker/apiService/pkg/mongo"
 
-	"github.com/joho/godotenv"
+	// "github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
 
@@ -28,21 +28,21 @@ type CheckInService interface {
 
 // Init sets up an instance of this domains
 // usecase, pre-configured with the dependencies.
-func Init() (CheckInService, *auth.JWTService, error) {
+func Init(mongoDBName, mongoHost, mongoCheckIn, mongoPwd, usersHost, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd string) (CheckInService, *auth.JWTService, error) {
 	fmt.Println("Init CheckIns Mongo Service...")
-	cfgPath := flag.String("config", "config.dev.yml", "path for yaml config")
-	flag.Parse()
-	godotenv.Load(*cfgPath)
 
-	mongoDBName := os.Getenv("MONGO_DB_NAME")
-	mongoHost := os.Getenv("MONGO_HOST")
-	mongoCheckIn := os.Getenv("MONGO_USER")
-	mongoPwd := os.Getenv("MONGO_PWD")
-	usersHost := os.Getenv("USERS_HOST")
-	placesHost := os.Getenv("PLACES_HOST")
-	jwtKeyPath := os.Getenv("JWT_KEY_PATH")
-	jwtSecretPath := os.Getenv("JWT_SECRET_PATH")
-	rpcPwd := os.Getenv("RPC_AUTH_PWD")
+	// cfgPath := flag.String("config", "config.dev.yml", "path for yaml config")
+	// flag.Parse()
+	// godotenv.Load(*cfgPath)
+	// mongoDBName := os.Getenv("MONGO_DB_NAME")
+	// mongoHost := os.Getenv("MONGO_HOST")
+	// mongoCheckIn := os.Getenv("MONGO_USER")
+	// mongoPwd := os.Getenv("MONGO_PWD")
+	// usersHost := os.Getenv("USERS_HOST")
+	// placesHost := os.Getenv("PLACES_HOST")
+	// jwtKeyPath := os.Getenv("JWT_KEY_PATH")
+	// jwtSecretPath := os.Getenv("JWT_SECRET_PATH")
+	// rpcPwd := os.Getenv("RPC_AUTH_PWD")
 
 	// Init mongo repo
 	mc, err := m.NewClient(mongoHost, mongoCheckIn, mongoPwd)

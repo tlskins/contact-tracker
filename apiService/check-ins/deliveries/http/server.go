@@ -2,17 +2,15 @@ package http
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
-	api "github.com/contact-tracker/apiService/pkg/api/http"
-	"github.com/contact-tracker/apiService/pkg/auth"
+	"github.com/go-chi/chi"
 
 	chk "github.com/contact-tracker/apiService/check-ins"
 	t "github.com/contact-tracker/apiService/check-ins/types"
-
-	"github.com/go-chi/chi"
+	api "github.com/contact-tracker/apiService/pkg/api/http"
+	"github.com/contact-tracker/apiService/pkg/auth"
 )
 
 const fiveSecondsTimeout = time.Second * 5
@@ -66,21 +64,25 @@ func (d *handler) CheckIn() http.HandlerFunc {
 	}
 }
 
-// Routes -
-func Routes() (*chi.Mux, error) {
+func NewServer(port, mongoDBName, mongoHost, mongoCheckIn, mongoPwd, usersHost, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd string) (server *api.Server, err error) {
 	fmt.Println("Starting check ins http routes...")
-	usecase, j, err := chk.Init()
+
+	usecase, j, err := chk.Init(mongoDBName, mongoHost, mongoCheckIn, mongoPwd, usersHost, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd)
 	if err != nil {
-		log.Panic(err)
+		return nil, err
 	}
 
-	h := &handler{usecase, j}
-	r := api.NewRouter()
+	h := &handler{
+		usecase: usecase,
+		jwt:     j,
+	}
 
+	server = api.NewServer(port)
+	r := server.Router
 	r.Get("/check-ins/{id}", j.AuthorizeHandler(h.Get()))
 	r.Get("/check-ins/history/{placeId}", j.AuthorizeHandler(h.GetHistory()))
 	r.Get("/check-ins", j.AuthorizeHandler(h.GetAll()))
 	r.Post("/check-ins", j.AuthorizeHandler(h.CheckIn()))
 
-	return r, nil
+	return
 }

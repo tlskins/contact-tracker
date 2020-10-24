@@ -2,19 +2,18 @@ package users
 
 import (
 	"context"
-	"flag"
+	// "flag"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
+	// "os"
 
 	"github.com/contact-tracker/apiService/pkg/auth"
-	"github.com/contact-tracker/apiService/pkg/email"
 	m "github.com/contact-tracker/apiService/pkg/mongo"
 	repo "github.com/contact-tracker/apiService/users/repository"
 	t "github.com/contact-tracker/apiService/users/types"
 
-	"github.com/joho/godotenv"
+	// "github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
 
@@ -31,24 +30,24 @@ type UserService interface {
 
 // Init sets up an instance of this domains
 // usecase, pre-configured with the dependencies.
-func Init() (UserService, *auth.JWTService, error) {
+func Init(mongoDBName, mongoHost, mongoUser, mongoPwd, usersHost, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd string) (UserService, *auth.JWTService, error) {
 	fmt.Println("Init Users Mongo Service...")
-	cfgPath := flag.String("config", "config.dev.yml", "path for yaml config")
-	flag.Parse()
-	godotenv.Load(*cfgPath)
 
-	mongoDBName := os.Getenv("MONGO_DB_NAME")
-	mongoHost := os.Getenv("MONGO_HOST")
-	mongoUser := os.Getenv("MONGO_USER")
-	mongoPwd := os.Getenv("MONGO_PWD")
-	usersHost := os.Getenv("USERS_HOST")
-	jwtKeyPath := os.Getenv("JWT_KEY_PATH")
-	jwtSecretPath := os.Getenv("JWT_SECRET_PATH")
-	sesAccessKey := os.Getenv("AWS_SES_ACCESS_KEY")
-	sesAccessSecret := os.Getenv("AWS_SES_ACCESS_SECRET")
-	sesRegion := os.Getenv("AWS_SES_REGION")
-	senderEmail := os.Getenv("SENDER_EMAIL")
-	rpcPwd := os.Getenv("RPC_AUTH_PWD")
+	// cfgPath := flag.String("config", "config.dev.yml", "path for yaml config")
+	// flag.Parse()
+	// godotenv.Load(*cfgPath)
+	// mongoDBName := os.Getenv("MONGO_DB_NAME")
+	// mongoHost := os.Getenv("MONGO_HOST")
+	// mongoUser := os.Getenv("MONGO_USER")
+	// mongoPwd := os.Getenv("MONGO_PWD")
+	// usersHost := os.Getenv("USERS_HOST")
+	// jwtKeyPath := os.Getenv("JWT_KEY_PATH")
+	// jwtSecretPath := os.Getenv("JWT_SECRET_PATH")
+	// sesAccessKey := os.Getenv("AWS_SES_ACCESS_KEY")
+	// sesAccessSecret := os.Getenv("AWS_SES_ACCESS_SECRET")
+	// sesRegion := os.Getenv("AWS_SES_REGION")
+	// senderEmail := os.Getenv("SENDER_EMAIL")
+	// rpcPwd := os.Getenv("RPC_AUTH_PWD")
 
 	// Init mongo repo
 	mc, err := m.NewClient(mongoHost, mongoUser, mongoPwd)
@@ -75,12 +74,6 @@ func Init() (UserService, *auth.JWTService, error) {
 		log.Fatalf("Error creating jwt service: %v\n", err)
 	}
 
-	// Init email
-	emailClient, err := email.Init(sesRegion, sesAccessKey, sesAccessSecret, senderEmail)
-	if err != nil {
-		log.Fatalf("Error starting email svc: %v\n", err)
-	}
-
 	// Init logger
 	logger, _ := zap.NewProduction()
 
@@ -88,7 +81,6 @@ func Init() (UserService, *auth.JWTService, error) {
 		Logger: logger,
 		Usecase: &Usecase{
 			Repository: repository,
-			Email:      emailClient,
 			usersHost:  usersHost,
 		},
 	}

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/globalsign/mgo"
 	"github.com/google/uuid"
@@ -45,7 +46,7 @@ func (r *MongoPlaceRepository) FindByEmail(_ context.Context, email string) (res
 	sess, c := r.C(ColPlaces)
 	defer sess.Close()
 
-	err = m.FindOne(c, &resp, m.M{"em": email})
+	err = m.FindOne(c, &resp, m.M{"em": m.M{"$regex": fmt.Sprintf("(?i)^%s$", email)}})
 	return
 }
 

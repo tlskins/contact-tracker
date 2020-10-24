@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/contact-tracker/apiService/pkg/auth"
-	"github.com/contact-tracker/apiService/pkg/email"
 	t "github.com/contact-tracker/apiService/places/types"
 
 	"github.com/google/uuid"
@@ -30,7 +29,6 @@ type repository interface {
 // Usecase for interacting with places
 type Usecase struct {
 	Repository repository
-	Email      email.EmailService
 	placesHost string
 }
 
@@ -74,18 +72,20 @@ func (u *Usecase) Create(ctx context.Context, req *t.CreatePlace) (resp *t.Place
 		return nil, validationErrors
 	}
 
+	if _, err := u.Repository.FindByEmail(ctx, req.Email); err == nil {
+		return nil, errors.New("error place for email already exists")
+	}
+
 	place := req.ToPlace()
 	place.ID = u.newID()
+	now := time.Now()
+	place.LastLoggedIn = &now
 	if place.EncryptedPassword, err = auth.EncryptPassword(req.Password); err != nil {
 		return nil, errors.Wrap(err, "error encrypting password")
 	}
 
 	if resp, err = u.Repository.Create(ctx, place); err != nil {
 		return nil, errors.Wrap(err, "error creating new place")
-	}
-
-	if err := u.Email.SendEmail(t.WelcomeEmailInput(place, u.placesHost)); err != nil {
-		return nil, err
 	}
 
 	return resp, nil
@@ -110,9 +110,6 @@ func (u *Usecase) SignIn(ctx context.Context, req *t.SignInReq) (resp *t.Place, 
 	place, err := u.Repository.FindByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, errors.Wrap(err, "error finding place by email")
-	}
-	if !place.Confirmed {
-		return nil, errors.New("place must first confirm by email")
 	}
 	if err = auth.ValidateCredentials(place.EncryptedPassword, req.Password); err != nil {
 		return nil, errors.Wrap(err, "error validating credentials")

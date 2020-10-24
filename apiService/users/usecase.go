@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/contact-tracker/apiService/pkg/auth"
-	"github.com/contact-tracker/apiService/pkg/email"
 	t "github.com/contact-tracker/apiService/users/types"
 
 	"github.com/google/uuid"
@@ -30,7 +29,6 @@ type repository interface {
 // Usecase for interacting with users
 type Usecase struct {
 	Repository repository
-	Email      email.EmailService
 	usersHost  string
 }
 
@@ -78,9 +76,6 @@ func (u *Usecase) SignIn(ctx context.Context, req *t.SignInReq) (resp *t.User, e
 	if err != nil {
 		return nil, errors.Wrap(err, "error finding user by email")
 	}
-	if !user.Confirmed {
-		return nil, errors.New("user must first confirm by email")
-	}
 	if err = auth.ValidateCredentials(user.EncryptedPassword, req.Password); err != nil {
 		return nil, errors.Wrap(err, "error validating credentials")
 	}
@@ -101,18 +96,20 @@ func (u *Usecase) Create(ctx context.Context, req *t.CreateUser) (resp *t.User, 
 		return nil, validationErrors
 	}
 
+	if _, err := u.Repository.FindByEmail(ctx, req.Email); err == nil {
+		return nil, errors.New("error user for email already exists")
+	}
+
 	user := req.ToUser()
 	user.ID = u.newID()
+	now := time.Now()
+	user.LastLoggedIn = &now
 	if user.EncryptedPassword, err = auth.EncryptPassword(req.Password); err != nil {
 		return nil, errors.Wrap(err, "error encrypting password")
 	}
 
 	if resp, err = u.Repository.Create(ctx, user); err != nil {
 		return nil, errors.Wrap(err, "error creating new user")
-	}
-
-	if err := u.Email.SendEmail(t.WelcomeEmailInput(user, u.usersHost)); err != nil {
-		return nil, err
 	}
 
 	return resp, nil

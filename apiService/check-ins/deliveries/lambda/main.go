@@ -56,6 +56,11 @@ func (h handler) router() func(context.Context, api.Request) (api.Response, erro
 				return api.Fail(err, http.StatusUnauthorized)
 			}
 			return h.GetAll(ctx, &req)
+		} else if api.MatchesRoute("/check-ins/history/{id}", "GET", &req) {
+			if err := isAuthorized(ctx); err != nil {
+				return api.Fail(err, http.StatusUnauthorized)
+			}
+			return h.GetHistory(ctx, &req)
 		} else if api.MatchesRoute("/check-ins", "POST", &req) {
 			if err := isAuthorized(ctx); err != nil {
 				return api.Fail(err, http.StatusUnauthorized)
@@ -78,6 +83,19 @@ func (h *handler) Get(ctx context.Context, req *api.Request) (resp api.Response,
 		return api.Fail(err, http.StatusInternalServerError)
 	}
 	return api.Success(checkIn, http.StatusOK)
+}
+
+// GetHistory get history of checkins and contacts
+func (h *handler) GetHistory(ctx context.Context, req *api.Request) (resp api.Response, err error) {
+	var id string
+	if id, err = api.GetPathParam("id", req); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
+	}
+	var history []*t.CheckInHistory
+	if history, err = h.usecase.GetHistory(ctx, id); err != nil {
+		return api.Fail(err, http.StatusInternalServerError)
+	}
+	return api.Success(history, http.StatusOK)
 }
 
 // GetAll check ins

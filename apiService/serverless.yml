@@ -155,6 +155,10 @@ functions:
           method: GET
           cors: true
       - http:
+          path: /check-ins/history/{id}
+          method: GET
+          cors: true
+      - http:
           path: /check-ins/{id}
           method: GET
           cors: true

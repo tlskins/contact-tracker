@@ -79,14 +79,14 @@ func (j *JWTService) AuthorizeHandler(next http.Handler) http.HandlerFunc {
 		if rpcCookie != nil && rpcCookie.Value == j.rpcPwd {
 			ctx = context.WithValue(ctx, RPCAccessTokenKey, rpcCookie.Value)
 		} else {
-			accessCookie, err := r.Cookie(AccessTokenKey)
-			if err != nil {
-				if err == http.ErrNoCookie {
-					apiHttp.CheckHTTPError(http.StatusUnauthorized, fmt.Errorf("Unauthorized access"))
-				}
-				apiHttp.CheckHTTPError(http.StatusUnauthorized, err)
+			authHeaders, ok := r.Header["Authorization"]
+			if !ok || len(authHeaders) == 0 {
+				apiHttp.CheckHTTPError(http.StatusUnauthorized, fmt.Errorf("Unauthorized access"))
 			}
-			claims, err := j.Decode(accessCookie.Value)
+			fmt.Printf("authHeader: %s\n\n", authHeaders[0])
+			authCode := strings.ReplaceAll(authHeaders[0], fmt.Sprintf("%s=", AccessTokenKey), "")
+			authCode = strings.TrimPrefix(authCode, "Bearer ")
+			claims, err := j.Decode(authCode)
 			apiHttp.CheckHTTPError(http.StatusUnauthorized, err)
 			ctx = context.WithValue(ctx, AccessTokenKey, claims)
 		}

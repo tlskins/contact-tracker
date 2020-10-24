@@ -6,13 +6,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi"
+
 	api "github.com/contact-tracker/apiService/pkg/api/http"
 	"github.com/contact-tracker/apiService/pkg/auth"
-
 	"github.com/contact-tracker/apiService/users"
 	t "github.com/contact-tracker/apiService/users/types"
-
-	"github.com/go-chi/chi"
 )
 
 const fiveSecondsTimeout = time.Second * 5
@@ -59,18 +58,10 @@ func (d *handler) SignIn() http.HandlerFunc {
 		ctx := r.Context()
 		req := &t.SignInReq{}
 		api.ParseHTTPParams(r, req)
-
 		user, err := d.usecase.SignIn(ctx, req)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
-		accessToken, err := d.jwt.GenAccessToken(user)
+		user.AuthToken, err = d.jwt.GenAccessToken(user)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
-
-		http.SetCookie(w, &http.Cookie{
-			Name:  auth.AccessTokenKey,
-			Value: accessToken,
-			// Expires: expirationTime,
-		})
-
 		api.WriteJSON(w, http.StatusOK, user)
 	}
 }
@@ -80,10 +71,11 @@ func (d *handler) Create() http.HandlerFunc {
 		ctx := r.Context()
 		req := &t.CreateUser{}
 		api.ParseHTTPParams(r, req)
-
-		resp, err := d.usecase.Create(ctx, req)
+		user, err := d.usecase.Create(ctx, req)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
-		api.WriteJSON(w, http.StatusOK, resp)
+		user.AuthToken, err = d.jwt.GenAccessToken(user)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
+		api.WriteJSON(w, http.StatusOK, user)
 	}
 }
 
@@ -109,17 +101,21 @@ func (d *handler) Confirm() http.HandlerFunc {
 	}
 }
 
-// Routes -
-func Routes() (*chi.Mux, error) {
+func NewServer(port, mongoDBName, mongoHost, mongoPlace, mongoPwd, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd string) (server *api.Server, err error) {
 	fmt.Println("Starting user http routes...")
-	usecase, j, err := users.Init()
+
+	usecase, j, err := users.Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, port, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	h := &handler{usecase, j}
-	r := api.NewRouter()
+	h := &handler{
+		usecase: usecase,
+		jwt:     j,
+	}
 
+	server = api.NewServer(port)
+	r := server.Router
 	r.Post("/users", h.Create())
 	r.Get("/users", j.AuthorizeHandler(h.GetAll()))
 	r.Get("/users/{id}", j.AuthorizeHandler(h.Get()))
@@ -128,5 +124,5 @@ func Routes() (*chi.Mux, error) {
 	r.Post("/users/login", h.SignIn())
 	r.Get("/users/{id}/confirm", h.Confirm())
 
-	return r, nil
+	return
 }

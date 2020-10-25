@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 
@@ -73,6 +74,10 @@ func main() {
 
 	ctx := context.TODO()
 	reader := bufio.NewReader(os.Stdin)
+	loc, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		log.Panic(err)
+	}
 	fmt.Println("---------------------")
 	fmt.Printf("\nWelcome to Contact Tracker CLI\n")
 	printCommands()
@@ -110,25 +115,21 @@ func main() {
 			}
 			fmt.Printf("%d histories(s)\n", len(histories))
 			for _, history := range histories {
-				start := "N/A"
-				if history.In != nil {
-					start = history.In.Format("Jan 2 3:04 PM")
-				}
-				end := "N/A"
-				if history.Out != nil {
-					end = history.Out.Format("Jan 2 3:04 PM")
-				}
-				fmt.Printf("%s - %s From: %s To: %s (%d contacts)\n", history.User.Name, history.Place.Name, start, end, len(history.Contacts))
+				fmt.Printf(
+					"%s - %s From: %s To: %s (%d contacts)\n",
+					history.User.Name,
+					history.Place.Name,
+					history.In.In(loc).Format("Jan 2 3:04 PM"),
+					history.Out.In(loc).Format("Jan 2 3:04 PM"),
+					len(history.Contacts),
+				)
 				for _, contact := range history.Contacts {
-					cStart := "N/A"
-					if contact.In != nil {
-						cStart = contact.In.Format("Jan 2 3:04 PM")
-					}
-					cEnd := "N/A"
-					if contact.Out != nil {
-						cEnd = contact.Out.Format("Jan 2 3:04 PM")
-					}
-					fmt.Printf("\t%s From: %s To: %s\n", contact.User.Name, cStart, cEnd)
+					fmt.Printf(
+						"\t%s From: %s To: %s\n",
+						contact.User.Name,
+						contact.In.In(loc).Format("Jan 2 3:04 PM"),
+						contact.Out.In(loc).Format("Jan 2 3:04 PM"),
+					)
 				}
 			}
 		} else if strings.Compare("help", command) == 0 {

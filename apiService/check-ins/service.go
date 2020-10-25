@@ -12,9 +12,8 @@ import (
 	t "github.com/contact-tracker/apiService/check-ins/types"
 	"github.com/contact-tracker/apiService/pkg/auth"
 	m "github.com/contact-tracker/apiService/pkg/mongo"
-
 	// "github.com/joho/godotenv"
-	"go.uber.org/zap"
+	// "go.uber.org/zap"
 )
 
 // CheckInService - is the top level signature of this service
@@ -70,14 +69,11 @@ func Init(mongoDBName, mongoHost, mongoCheckIn, mongoPwd, usersHost, placesHost,
 	}
 
 	// Init logger
-	logger, _ := zap.NewProduction()
+	// logger, _ := zap.NewProduction()
 
-	usecase := &LoggerAdapter{
-		Logger: logger,
-		Usecase: &Usecase{
-			Repository: repository,
-			RPC:        rpcClient,
-		},
+	usecase := &Usecase{
+		Repository: repository,
+		RPC:        rpcClient,
 	}
 	return usecase, j, nil
 }

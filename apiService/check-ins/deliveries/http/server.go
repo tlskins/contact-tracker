@@ -16,7 +16,7 @@ import (
 const fiveSecondsTimeout = time.Second * 5
 
 type handler struct {
-	usecase chk.CheckInService
+	Usecase chk.CheckInService
 	jwt     *auth.JWTService
 }
 
@@ -24,7 +24,7 @@ func (d *handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		id := chi.URLParam(r, "id")
-		user, err := d.usecase.Get(ctx, id)
+		user, err := d.Usecase.Get(ctx, id)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, user)
 	}
@@ -34,7 +34,7 @@ func (d *handler) GetHistory() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		placeID := chi.URLParam(r, "placeId")
-		resp, err := d.usecase.GetHistory(ctx, placeID)
+		resp, err := d.Usecase.GetHistory(ctx, placeID)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, resp)
 	}
@@ -46,7 +46,7 @@ func (d *handler) GetAll() http.HandlerFunc {
 		req := &t.GetCheckIns{}
 		api.ParseHTTPParams(r, req)
 
-		resp, err := d.usecase.GetAll(ctx, req)
+		resp, err := d.Usecase.GetAll(ctx, req)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, resp)
 	}
@@ -58,22 +58,22 @@ func (d *handler) CheckIn() http.HandlerFunc {
 		req := &t.CreateCheckIn{}
 		api.ParseHTTPParams(r, req)
 
-		resp, err := d.usecase.CheckIn(ctx, req)
+		resp, err := d.Usecase.CheckIn(ctx, req)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, resp)
 	}
 }
 
-func NewServer(port, mongoDBName, mongoHost, mongoCheckIn, mongoPwd, usersHost, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd string) (server *api.Server, err error) {
+func NewServer(port, mongoDBName, mongoHost, mongoCheckIn, mongoPwd, usersHost, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd string) (server *api.Server, h *handler, err error) {
 	fmt.Printf("Listening for check-ins on %s...\n", port)
 
-	usecase, j, err := chk.Init(mongoDBName, mongoHost, mongoCheckIn, mongoPwd, usersHost, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd)
+	Usecase, j, err := chk.Init(mongoDBName, mongoHost, mongoCheckIn, mongoPwd, usersHost, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	h := &handler{
-		usecase: usecase,
+	h = &handler{
+		Usecase: Usecase,
 		jwt:     j,
 	}
 

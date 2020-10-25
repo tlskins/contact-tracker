@@ -45,18 +45,46 @@ func (r *MongoCheckInRepository) GetHistory(_ context.Context, placeID string) (
 	sess, c := r.C(ColCheckIns)
 	defer sess.Close()
 
+	match := m.M{}
+	if len(placeID) != 0 {
+		match["place.id"] = placeID
+	}
+
 	resp = []*t.CheckInHistory{}
-	if err = m.Find(c, &resp, m.M{"place.id": placeID}); err != nil {
+	if err = m.Aggregate(c, &resp, []m.M{
+		{"$match": match},
+		{"$addFields": m.M{
+			"out": m.M{
+				"$ifNull": []interface{}{
+					"$out",
+					m.M{"$add": []interface{}{"$in", 60000 * 5}}, // add 5 mins to in if out is null
+				},
+			},
+		}},
+	}); err != nil {
 		return
 	}
 	for _, check := range resp {
 		contacts := []*t.CheckIn{}
-		if err = m.Find(c, &contacts, m.M{
-			"place.id": placeID,
-			"$or": []m.M{
-				{"in": m.M{"$lte": check.Out}},
-				{"out": m.M{"$gte": check.In}},
-			},
+		if err = m.Aggregate(c, &contacts, []m.M{
+			{"$match": m.M{
+				"user.id":  m.M{"$ne": check.User.ID},
+				"place.id": check.Place.ID,
+			}},
+			{"$addFields": m.M{
+				"out": m.M{
+					"$ifNull": []interface{}{
+						"$out",
+						m.M{"$add": []interface{}{"$in", 60000 * 5}}, // add 5 mins to in if out is null
+					},
+				},
+			}},
+			{"$match": m.M{
+				"$or": []m.M{
+					m.M{"out": m.M{"$gte": check.In, "$lte": check.Out}},
+					m.M{"in": m.M{"$gte": check.In, "$lte": check.Out}},
+				},
+			}},
 		}); err != nil {
 			return
 		}

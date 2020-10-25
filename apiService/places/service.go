@@ -12,8 +12,7 @@ import (
 	r "github.com/contact-tracker/apiService/places/repository"
 	t "github.com/contact-tracker/apiService/places/types"
 	// "github.com/joho/godotenv"
-
-	"go.uber.org/zap"
+	// "go.uber.org/zap"
 )
 
 // PlaceService - is the top level signature of this service
@@ -23,7 +22,6 @@ type PlaceService interface {
 	Update(ctx context.Context, place *t.UpdatePlace) (*t.Place, error)
 	Create(ctx context.Context, req *t.CreatePlace) (*t.Place, error)
 	Delete(ctx context.Context, id string) error
-
 	SignIn(ctx context.Context, req *t.SignInReq) (*t.Place, error)
 	Confirm(ctx context.Context, id string) error
 }
@@ -72,14 +70,11 @@ func Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, 
 		log.Fatalf("Error creating jwt service: %v\n", err)
 	}
 
-	logger, _ := zap.NewProduction()
+	// logger, _ := zap.NewProduction()
 
-	usecase := &LoggerAdapter{
-		Logger: logger,
-		Usecase: &Usecase{
-			Repository: repo,
-			placesHost: placesHost,
-		},
+	usecase := &Usecase{
+		Repository: repo,
+		placesHost: placesHost,
 	}
 	return usecase, j, nil
 }

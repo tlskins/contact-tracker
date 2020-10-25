@@ -11,9 +11,8 @@ import (
 	m "github.com/contact-tracker/apiService/pkg/mongo"
 	repo "github.com/contact-tracker/apiService/users/repository"
 	t "github.com/contact-tracker/apiService/users/types"
-
 	// "github.com/joho/godotenv"
-	"go.uber.org/zap"
+	// "go.uber.org/zap"
 )
 
 // UserService - is the top level signature of this service
@@ -72,14 +71,11 @@ func Init(mongoDBName, mongoHost, mongoUser, mongoPwd, usersHost, jwtKeyPath, jw
 	}
 
 	// Init logger
-	logger, _ := zap.NewProduction()
+	// logger, _ := zap.NewProduction()
 
-	usecase := &LoggerAdapter{
-		Logger: logger,
-		Usecase: &Usecase{
-			Repository: repository,
-			usersHost:  usersHost,
-		},
+	usecase := &Usecase{
+		Repository: repository,
+		usersHost:  usersHost,
 	}
 	return usecase, j, nil
 }

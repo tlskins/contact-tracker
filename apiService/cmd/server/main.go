@@ -48,7 +48,7 @@ func main() {
 		rpcPwd              = os.Getenv("RPC_AUTH_PWD")
 	)
 
-	chkServer, err := chk.NewServer(checkInsPort, checkInsMongoDBName, checkInsMongoHost, checkInsMongo, checkInsMongoPwd, "http://localhost:"+usersPort, "http://localhost:"+placesPort, jwtKeyPath, jwtSecretPath, rpcPwd)
+	chkServer, checkInHandler, err := chk.NewServer(checkInsPort, checkInsMongoDBName, checkInsMongoHost, checkInsMongo, checkInsMongoPwd, "http://localhost:"+usersPort, "http://localhost:"+placesPort, jwtKeyPath, jwtSecretPath, rpcPwd)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -73,11 +73,12 @@ func main() {
 
 	ctx := context.TODO()
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Contact Tracker CLI")
 	fmt.Println("---------------------")
+	fmt.Printf("\nWelcome to Contact Tracker CLI\n")
+	printCommands()
 
 	for {
-		fmt.Print("-> ")
+		fmt.Printf("\n-> ")
 		command, _ := reader.ReadString('\n')
 		command = strings.Replace(command, "\n", "", -1)
 
@@ -101,8 +102,47 @@ func main() {
 			for _, user := range users {
 				fmt.Printf("%s - %s\n", user.Name, user.Email)
 			}
+		} else if strings.Compare("histories", command) == 0 {
+			histories, err := checkInHandler.Usecase.GetHistory(ctx, "")
+			if err != nil {
+				fmt.Printf("Error: %s\n", err)
+				continue
+			}
+			fmt.Printf("%d histories(s)\n", len(histories))
+			for _, history := range histories {
+				start := "N/A"
+				if history.In != nil {
+					start = history.In.Format("Jan 2 3:04 PM")
+				}
+				end := "N/A"
+				if history.Out != nil {
+					end = history.Out.Format("Jan 2 3:04 PM")
+				}
+				fmt.Printf("%s - %s From: %s To: %s (%d contacts)\n", history.User.Name, history.Place.Name, start, end, len(history.Contacts))
+				for _, contact := range history.Contacts {
+					cStart := "N/A"
+					if contact.In != nil {
+						cStart = contact.In.Format("Jan 2 3:04 PM")
+					}
+					cEnd := "N/A"
+					if contact.Out != nil {
+						cEnd = contact.Out.Format("Jan 2 3:04 PM")
+					}
+					fmt.Printf("\t%s From: %s To: %s\n", contact.User.Name, cStart, cEnd)
+				}
+			}
+		} else if strings.Compare("help", command) == 0 {
+			printCommands()
 		} else {
 			fmt.Printf("Invalid command\n")
 		}
 	}
+}
+
+func printCommands() {
+	fmt.Printf("Commands:\n")
+	fmt.Printf("stores : prints all available store locations\n")
+	fmt.Printf("customers : prints all prior customers for all store locations\n")
+	fmt.Printf("histories : prints contact histories for all customers in all store locations\n")
+	fmt.Printf("help : prints these commands again\n")
 }

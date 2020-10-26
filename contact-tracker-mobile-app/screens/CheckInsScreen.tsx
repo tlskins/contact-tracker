@@ -20,11 +20,9 @@ const mapDispatch = (dispatch: any) => {
         console.log("before loading checkins...")
         const resp = await instance.get(`/check-ins?userId=${userId}`)
         console.log("resp", resp)
-        if (resp?.data) {
-          const { data } = resp
-          dispatch(setCheckIns(data))
-          return true
-        }
+        const data = resp?.data || []
+        dispatch(setCheckIns(data))
+        return true
       } catch (e) {
         console.log("loading checkins err", e)
         const errMsg = e.response?.data?.message || e.message || ""
@@ -51,7 +49,7 @@ const CheckInsStackScreen = (props: ConnectedProps<typeof connector>) => {
       loadCheckIns(profile.id)
     }
   }, [])
-
+  
   return (
     <View style={tailwind("h-full items-center bg-gray-500 p-12 pt-20")}>
       <Text style={styles.title}>{name}</Text>
@@ -60,6 +58,9 @@ const CheckInsStackScreen = (props: ConnectedProps<typeof connector>) => {
         lightColor="#eee"
         darkColor="rgba(255,255,255,0.1)"
       />
+      { (checkIns || []).length === 0 &&
+        <Text style={styles.title}>No Check-Ins</Text>
+      }
       {(checkIns || []).map((check) => (
         <View key={check.id} style={tailwind("rounded-lg p-6 m-2")}>
           <View

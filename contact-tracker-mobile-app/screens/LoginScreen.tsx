@@ -148,6 +148,7 @@ const LoginScreen = (props: ConnectedProps<typeof connector>) => {
   const { userLogin, placeLogin, createPlace, createUser } = props
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [name, setName] = useState("")
   const [profileType, setProfileType] = useState(ProfileType.User)
   const [isRegister, setIsRegister] = useState(false)
@@ -160,6 +161,12 @@ const LoginScreen = (props: ConnectedProps<typeof connector>) => {
   }
 
   const onRegister = async () => {
+    if ( password !== confirmPassword ) {
+      Alert.alert("Register Error", "Passwords do not match", [{ text: "OK" }], {
+        cancelable: false,
+      })
+      return
+    }
     const create = isUser ? createUser : createPlace
     await create({ email, password, name })
   }
@@ -189,7 +196,19 @@ const LoginScreen = (props: ConnectedProps<typeof connector>) => {
           style={tailwind("rounded-lg border border-black h-8 w-40 p-2 m-2")}
           onChangeText={(text) => setPassword(text)}
           value={password}
+          secureTextEntry={true}
         />
+        { isRegister &&
+          <>
+            <Text style={tailwind("text-gray-600 font-semibold")}>Confirm Password</Text>
+            <TextInput
+              style={tailwind("rounded-lg border border-black h-8 w-40 p-2 m-2")}
+              onChangeText={(text) => setConfirmPassword(text)}
+              value={confirmPassword}
+              secureTextEntry={true}
+            />
+          </>
+        }
       </View>
 
       <View

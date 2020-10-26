@@ -31,6 +31,7 @@ const ProfileStackScreen = (props: ConnectedProps<typeof connector>) => {
   return (
     <View style={tailwind("h-full items-center bg-gray-500 p-12 pt-20")}>
       <Text style={styles.title}>{name}</Text>
+      <Text style={styles.title}>{ profile?.email }</Text>
       <View
         style={styles.separator}
         lightColor="#eee"

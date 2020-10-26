@@ -26,7 +26,7 @@ func NewServer(port string) *Server {
 	r := chi.NewRouter()
 	r.Use(
 		render.SetContentType(render.ContentTypeJSON),
-		middleware.Logger,
+		// middleware.Logger,
 		middleware.RealIP,
 		middleware.RequestID,
 		middleware.Timeout(60*time.Second),

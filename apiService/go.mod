@@ -21,6 +21,7 @@ require (
 	golang.org/x/crypto v0.0.0-20190510104115-cbcb75029529
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.31.0
+	gopkg.in/mail.v2 v2.3.1
 )
 
 go 1.13

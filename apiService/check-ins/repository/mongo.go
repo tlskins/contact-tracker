@@ -41,13 +41,13 @@ func (r *MongoCheckInRepository) Get(_ context.Context, id string) (resp *t.Chec
 	return
 }
 
-func (r *MongoCheckInRepository) GetHistory(_ context.Context, placeID string) (resp []*t.CheckInHistory, err error) {
+func (r *MongoCheckInRepository) GetHistory(_ context.Context, userID string) (resp []*t.CheckInHistory, err error) {
 	sess, c := r.C(ColCheckIns)
 	defer sess.Close()
 
 	match := m.M{}
-	if len(placeID) != 0 {
-		match["place.id"] = placeID
+	if len(userID) != 0 {
+		match["user.id"] = userID
 	}
 
 	resp = []*t.CheckInHistory{}

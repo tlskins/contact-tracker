@@ -165,7 +165,24 @@ func main() {
 				usrConfirm, _ := reader.ReadString('\n')
 				usrConfirm = strings.Replace(usrConfirm, "\n", "", -1)
 				if strings.Compare("Y", usrConfirm) == 0 || strings.Compare("y", usrConfirm) == 0 {
-					fmt.Printf("Selected!\n")
+					histories, err := checkInHandler.Usecase.GetHistory(ctx, user.ID)
+					if err != nil {
+						log.Panic(err)
+					}
+					contactsMap := make(map[string]bool)
+					for _, history := range histories {
+						for _, contact := range history.Contacts {
+							contactsMap[contact.User.ID] = true
+						}
+					}
+					contacts := []string{}
+					for userID := range contactsMap {
+						contacts = append(contacts, userID)
+					}
+					if err = usersHandler.Usecase.AlertUsers(ctx, contacts); err != nil {
+						log.Panic(err)
+					}
+					fmt.Printf("%d contacts have been notified!\n\n", len(contacts))
 					searchingUser = false
 				}
 			}

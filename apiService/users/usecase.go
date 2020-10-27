@@ -160,9 +160,11 @@ func (u *Usecase) AlertUsers(ctx context.Context, ids []string) (err error) {
 		return errors.Wrap(err, "error getting users for alert")
 	}
 	for _, user := range users {
-		if err = u.EmailClient.SendEmail(user.Email, `Hello from Contact Tracker,\nThis email is a warning that you may
-		have been in contact with someone who has recently tested positive for COVID-19. Please 
-		have yourself tested and be sure to wear a mask in public.\n\nThank You,\nContact Tracker Team`); err != nil {
+		if err = u.EmailClient.SendEmail(
+			user.Email,
+			"Important Notice From Contact Tracker",
+			"Hello from Contact Tracker,\n\nThis email is a warning that you may have been in contact with someone who has recently tested positive for COVID-19. Please have yourself tested and be sure to wear a mask in public.\n\nThank You,\nContact Tracker Team",
+		); err != nil {
 			return
 		}
 	}

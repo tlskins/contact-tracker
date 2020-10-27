@@ -26,6 +26,7 @@ type UserService interface {
 	Delete(ctx context.Context, id string) error
 	SignIn(ctx context.Context, req *t.SignInReq) (*t.User, error)
 	Confirm(ctx context.Context, id string) error
+	AlertUsers(ctx context.Context, ids []string) error
 }
 
 // Init sets up an instance of this domains
@@ -55,7 +56,10 @@ func Init(mongoDBName, mongoHost, mongoUser, mongoPwd, usersHost, jwtKeyPath, jw
 	repository := repo.NewMongoUserRepository(mc, mongoDBName)
 
 	// Email
-	emailClient := email.NewEmailClient(fromEmail, emailPwd, smtpHost, smtpPort)
+	emailClient, err := email.NewEmailClient(fromEmail, emailPwd, smtpHost, smtpPort)
+	if err != nil {
+		log.Fatalf("Error starting email client: Error: %v\n", err)
+	}
 
 	// Init jwt service
 	jwtKey, err := ioutil.ReadFile(jwtKeyPath)

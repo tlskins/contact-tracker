@@ -1,28 +1,39 @@
 package email
 
 import (
-	"net/smtp"
+	"crypto/tls"
+	"strconv"
+
+	gomail "gopkg.in/mail.v2"
 )
 
 type EmailClient struct {
 	from     string
 	password string
 	smtpHost string
-	smtpPort string
+	smtpPort int
 }
 
-func NewEmailClient(from, password, smtpHost, smtpPort string) *EmailClient {
+func NewEmailClient(from, password, smtpHost, smtpPort string) (*EmailClient, error) {
+	port, err := strconv.Atoi(smtpPort)
+	if err != nil {
+		return nil, err
+	}
 	return &EmailClient{
 		from:     from,
 		password: password,
 		smtpHost: smtpHost,
-		smtpPort: smtpPort,
-	}
+		smtpPort: port,
+	}, nil
 }
 
-func (c EmailClient) SendEmail(to, msg string) error {
-	msgBytes := []byte(msg)
-	recipients := []string{to}
-	auth := smtp.PlainAuth("", c.from, c.password, c.smtpHost)
-	return smtp.SendMail(c.smtpHost+":"+c.smtpPort, auth, c.from, recipients, msgBytes)
+func (c EmailClient) SendEmail(to, subject, body string) error {
+	msg := gomail.NewMessage()
+	msg.SetHeader("From", c.from)
+	msg.SetHeader("To", to)
+	msg.SetHeader("Subject", subject)
+	msg.SetBody("text/plain", body)
+	dialer := gomail.NewDialer(c.smtpHost, c.smtpPort, c.from, c.password)
+	dialer.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+	return dialer.DialAndSend(msg)
 }

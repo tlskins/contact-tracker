@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -42,10 +43,10 @@ func main() {
 		apigatewayPort      = os.Getenv("APIGATEWAY_PORT")
 		jwtKeyPath          = os.Getenv("JWT_KEY_PATH")
 		jwtSecretPath       = os.Getenv("JWT_SECRET_PATH")
-		sesAccessKey        = os.Getenv("AWS_SES_ACCESS_KEY")
-		sesAccessSecret     = os.Getenv("AWS_SES_ACCESS_SECRET")
-		sesRegion           = os.Getenv("AWS_SES_REGION")
-		senderEmail         = os.Getenv("SENDER_EMAIL")
+		fromEmail           = os.Getenv("NOTIFICATIONS_FROM_EMAIL")
+		emailPwd            = os.Getenv("EMAIL_PWD")
+		smtpHost            = os.Getenv("SMTP_HOST")
+		smtpPort            = os.Getenv("SMTP_PORT")
 		rpcPwd              = os.Getenv("RPC_AUTH_PWD")
 	)
 
@@ -55,13 +56,13 @@ func main() {
 	}
 	go chkServer.Start()
 
-	placesServer, placesHandler, err := places.NewServer(placesPort, placesMongoDBName, placesMongoHost, placesMongo, placesMongoPwd, "http://localhost:"+placesPort, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd)
+	placesServer, placesHandler, err := places.NewServer(placesPort, placesMongoDBName, placesMongoHost, placesMongo, placesMongoPwd, "http://localhost:"+placesPort, jwtKeyPath, jwtSecretPath, rpcPwd)
 	if err != nil {
 		log.Panic(err)
 	}
 	go placesServer.Start()
 
-	usersServer, usersHandler, err := users.NewServer(usersPort, usersMongoDBName, usersMongoHost, usersMongo, usersMongoPwd, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd)
+	usersServer, usersHandler, err := users.NewServer(usersPort, usersMongoDBName, usersMongoHost, usersMongo, usersMongoPwd, jwtKeyPath, jwtSecretPath, fromEmail, emailPwd, smtpHost, smtpPort, rpcPwd)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -132,6 +133,42 @@ func main() {
 					)
 				}
 			}
+		} else if strings.Compare("test", command) == 0 {
+			searchingUser := true
+			for searchingUser {
+				fmt.Printf("Type in part of the user's name or email to search for a user or q to exit the test command:\n\n-> ")
+				usrSearch, _ := reader.ReadString('\n')
+				usrSearch = strings.Replace(usrSearch, "\n", "", -1)
+				if strings.Compare("q", usrSearch) == 0 {
+					searchingUser = false
+					continue
+				}
+				users, err := usersHandler.Usecase.Search(ctx, usrSearch)
+				if err != nil {
+					log.Panic(err)
+				}
+
+				fmt.Printf("%d match(es)\nEnter number next to user name to select for a test positive case or press any key to search again\n", len(users))
+				for i, user := range users {
+					fmt.Printf("%d) %s - %s\n", i+1, user.Name, user.Email)
+				}
+				fmt.Printf("\n")
+				usrSelect, _ := reader.ReadString('\n')
+				usrSelect = strings.Replace(usrSelect, "\n", "", -1)
+				usrIdx, err := strconv.Atoi(usrSelect)
+				if err != nil || usrIdx > len(users) || usrIdx < 1 {
+					continue
+				}
+				user := users[usrIdx-1]
+
+				fmt.Printf("\nIs this user correct? %s - %s\nY - Yes\nAny other key - No\n\n", user.Name, user.Email)
+				usrConfirm, _ := reader.ReadString('\n')
+				usrConfirm = strings.Replace(usrConfirm, "\n", "", -1)
+				if strings.Compare("Y", usrConfirm) == 0 || strings.Compare("y", usrConfirm) == 0 {
+					fmt.Printf("Selected!\n")
+					searchingUser = false
+				}
+			}
 		} else if strings.Compare("help", command) == 0 {
 			printCommands()
 		} else {
@@ -145,5 +182,6 @@ func printCommands() {
 	fmt.Printf("stores : prints all available store locations\n")
 	fmt.Printf("customers : prints all prior customers for all store locations\n")
 	fmt.Printf("histories : prints contact histories for all customers in all store locations\n")
+	fmt.Printf("test : test contact alert system by simulating a positive case and notifying all users contacts\n")
 	fmt.Printf("help : prints these commands again\n")
 }

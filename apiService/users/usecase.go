@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/contact-tracker/apiService/pkg/auth"
+	"github.com/contact-tracker/apiService/pkg/email"
 	t "github.com/contact-tracker/apiService/users/types"
 
 	"github.com/google/uuid"
@@ -19,6 +20,8 @@ var (
 
 type repository interface {
 	Get(ctx context.Context, id string) (*t.User, error)
+	GetByIds(ctx context.Context, id []string) ([]*t.User, error)
+	Search(ctx context.Context, search string) ([]*t.User, error)
 	GetAll(ctx context.Context) ([]*t.User, error)
 	Update(ctx context.Context, user *t.UpdateUser) (*t.User, error)
 	FindByEmail(ctx context.Context, email string) (*t.User, error)
@@ -28,8 +31,9 @@ type repository interface {
 
 // Usecase for interacting with users
 type Usecase struct {
-	Repository repository
-	usersHost  string
+	Repository  repository
+	EmailClient *email.EmailClient
+	usersHost   string
 }
 
 // Get a single user
@@ -46,6 +50,15 @@ func (u *Usecase) GetAll(ctx context.Context) ([]*t.User, error) {
 	users, err := u.Repository.GetAll(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "error fetching all users")
+	}
+	return users, nil
+}
+
+// Search for users
+func (u *Usecase) Search(ctx context.Context, search string) ([]*t.User, error) {
+	users, err := u.Repository.Search(ctx, search)
+	if err != nil {
+		return nil, errors.Wrap(err, "error searching users")
 	}
 	return users, nil
 }
@@ -136,6 +149,22 @@ func (u *Usecase) Confirm(ctx context.Context, id string) error {
 	c := true
 	if _, err := u.Repository.Update(ctx, &t.UpdateUser{ID: id, Confirmed: &c}); err != nil {
 		return errors.Wrap(err, "error confirming user")
+	}
+	return nil
+}
+
+// Alert users of possible unsafe contact
+func (u *Usecase) AlertUsers(ctx context.Context, ids []string) (err error) {
+	var users []*t.User
+	if users, err = u.Repository.GetByIds(ctx, ids); err != nil {
+		return errors.Wrap(err, "error getting users for alert")
+	}
+	for _, user := range users {
+		if err = u.EmailClient.SendEmail(user.Email, `Hello from Contact Tracker,\nThis email is a warning that you may
+		have been in contact with someone who has recently tested positive for COVID-19. Please 
+		have yourself tested and be sure to wear a mask in public.\n\nThank You,\nContact Tracker Team`); err != nil {
+			return
+		}
 	}
 	return nil
 }

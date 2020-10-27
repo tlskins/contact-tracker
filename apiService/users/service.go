@@ -8,6 +8,7 @@ import (
 	// "os"
 
 	"github.com/contact-tracker/apiService/pkg/auth"
+	"github.com/contact-tracker/apiService/pkg/email"
 	m "github.com/contact-tracker/apiService/pkg/mongo"
 	repo "github.com/contact-tracker/apiService/users/repository"
 	t "github.com/contact-tracker/apiService/users/types"
@@ -19,6 +20,7 @@ import (
 type UserService interface {
 	Get(ctx context.Context, id string) (*t.User, error)
 	GetAll(ctx context.Context) ([]*t.User, error)
+	Search(ctx context.Context, search string) ([]*t.User, error)
 	Update(ctx context.Context, user *t.UpdateUser) (*t.User, error)
 	Create(ctx context.Context, user *t.CreateUser) (*t.User, error)
 	Delete(ctx context.Context, id string) error
@@ -28,7 +30,7 @@ type UserService interface {
 
 // Init sets up an instance of this domains
 // usecase, pre-configured with the dependencies.
-func Init(mongoDBName, mongoHost, mongoUser, mongoPwd, usersHost, jwtKeyPath, jwtSecretPath, sesAccessKey, sesAccessSecret, sesRegion, senderEmail, rpcPwd string) (UserService, *auth.JWTService, error) {
+func Init(mongoDBName, mongoHost, mongoUser, mongoPwd, usersHost, jwtKeyPath, jwtSecretPath, fromEmail, emailPwd, smtpHost, smtpPort, rpcPwd string) (UserService, *auth.JWTService, error) {
 	// cfgPath := flag.String("config", "config.dev.yml", "path for yaml config")
 	// flag.Parse()
 	// godotenv.Load(*cfgPath)
@@ -52,6 +54,9 @@ func Init(mongoDBName, mongoHost, mongoUser, mongoPwd, usersHost, jwtKeyPath, jw
 	}
 	repository := repo.NewMongoUserRepository(mc, mongoDBName)
 
+	// Email
+	emailClient := email.NewEmailClient(fromEmail, emailPwd, smtpHost, smtpPort)
+
 	// Init jwt service
 	jwtKey, err := ioutil.ReadFile(jwtKeyPath)
 	if err != nil {
@@ -74,8 +79,9 @@ func Init(mongoDBName, mongoHost, mongoUser, mongoPwd, usersHost, jwtKeyPath, jw
 	// logger, _ := zap.NewProduction()
 
 	usecase := &Usecase{
-		Repository: repository,
-		usersHost:  usersHost,
+		Repository:  repository,
+		EmailClient: emailClient,
+		usersHost:   usersHost,
 	}
 	return usecase, j, nil
 }

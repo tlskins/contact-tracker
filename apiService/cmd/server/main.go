@@ -152,7 +152,7 @@ func main() {
 				for i, user := range users {
 					fmt.Printf("%d) %s - %s\n", i+1, user.Name, user.Email)
 				}
-				fmt.Printf("\n")
+				fmt.Printf("\n-> ")
 				usrSelect, _ := reader.ReadString('\n')
 				usrSelect = strings.Replace(usrSelect, "\n", "", -1)
 				usrIdx, err := strconv.Atoi(usrSelect)
@@ -161,7 +161,7 @@ func main() {
 				}
 				user := users[usrIdx-1]
 
-				fmt.Printf("\nIs this user correct? %s - %s\nY - Yes\nAny other key - No\n\n", user.Name, user.Email)
+				fmt.Printf("\nIs this user correct? %s - %s\nY - Yes\nAny other key - No\n\n-> ", user.Name, user.Email)
 				usrConfirm, _ := reader.ReadString('\n')
 				usrConfirm = strings.Replace(usrConfirm, "\n", "", -1)
 				if strings.Compare("Y", usrConfirm) == 0 || strings.Compare("y", usrConfirm) == 0 {

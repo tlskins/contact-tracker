@@ -28,7 +28,6 @@ func NewRPCClient(placesHostName, usersHostName, rpcPwd string) *RPCClient {
 
 func (c *RPCClient) GetPlace(ctx context.Context, id string) (*pT.Place, error) {
 	var place pT.Place
-	fmt.Printf("%s\n", fmt.Sprintf("%s/places/%s", c.placesHostName, id))
 	if code, err := c.client.HttpRequest("GET", fmt.Sprintf("%s/places/%s", c.placesHostName, id), nil, &place); err != nil {
 		apiHttp.CheckHTTPError(code, err)
 	}
@@ -38,7 +37,6 @@ func (c *RPCClient) GetPlace(ctx context.Context, id string) (*pT.Place, error) 
 
 func (c *RPCClient) GetUser(ctx context.Context, id string) (*uT.User, error) {
 	var user uT.User
-	fmt.Printf("%s\n", fmt.Sprintf("%s/users/%s", c.usersHostName, id))
 	if code, err := c.client.HttpRequest("GET", fmt.Sprintf("%s/users/%s", c.usersHostName, id), nil, &user); err != nil {
 		apiHttp.CheckHTTPError(code, err)
 	}

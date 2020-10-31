@@ -9,7 +9,7 @@ export interface Profile {
 
 export enum ProfileType {
   User = "User",
-  Place = "Place",
+  Store = "Store Owner",
 }
 export interface User {
   id: string

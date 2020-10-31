@@ -2,6 +2,7 @@ package http
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -34,7 +35,9 @@ func (d *handler) GetHistory() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		placeID := chi.URLParam(r, "placeId")
-		resp, err := d.Usecase.GetHistory(ctx, placeID)
+		now := time.Now()
+		start := now.Add(time.Hour * -24)
+		resp, err := d.Usecase.GetHistory(ctx, placeID, &start, &now)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, resp)
 	}
@@ -64,16 +67,18 @@ func (d *handler) CheckIn() http.HandlerFunc {
 	}
 }
 
-func NewServer(port, mongoDBName, mongoHost, mongoCheckIn, mongoPwd, usersHost, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd string) (server *api.Server, h *handler, err error) {
+func NewServer(port, mongoDBName, mongoHost, mongoCheckIn, mongoPwd, usersHost, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd string) (server *api.Server, service *chk.CheckInService, err error) {
 	fmt.Printf("Listening for check-ins on %s...\n", port)
 
-	Usecase, j, err := chk.Init(mongoDBName, mongoHost, mongoCheckIn, mongoPwd, usersHost, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd)
+	svc, j, err := chk.Init(mongoDBName, mongoHost, mongoCheckIn, mongoPwd, usersHost, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd)
 	if err != nil {
+		log.Panic(err)
 		return nil, nil, err
 	}
+	service = &svc
 
-	h = &handler{
-		Usecase: Usecase,
+	h := &handler{
+		Usecase: svc,
 		jwt:     j,
 	}
 

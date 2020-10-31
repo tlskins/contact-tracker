@@ -101,16 +101,18 @@ func (d *handler) Confirm() http.HandlerFunc {
 	}
 }
 
-func NewServer(port, mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd string) (server *api.Server, h *handler, err error) {
+func NewServer(port, mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd, storePwd string) (server *api.Server, service *places.PlaceService, err error) {
 	fmt.Printf("Listening for places on %s...\n", port)
 
-	Usecase, j, err := places.Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd)
+	svc, j, err := places.Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd, storePwd)
 	if err != nil {
 		log.Panic(err)
+		return nil, nil, err
 	}
+	service = &svc
 
-	h = &handler{
-		Usecase: Usecase,
+	h := &handler{
+		Usecase: svc,
 		jwt:     j,
 	}
 

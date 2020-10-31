@@ -28,7 +28,7 @@ type PlaceService interface {
 
 // Init sets up an instance of this domains
 // usecase, pre-configured with the dependencies.
-func Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd string) (PlaceService, *auth.JWTService, error) {
+func Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd, storePwd string) (PlaceService, *auth.JWTService, error) {
 	// cfgPath := flag.String("config", "config.dev.yml", "path for yaml config")
 	// flag.Parse()
 	// godotenv.Load(*cfgPath)
@@ -75,6 +75,13 @@ func Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, 
 	usecase := &Usecase{
 		Repository: repo,
 		placesHost: placesHost,
+		storePwd:   storePwd,
+		adminPlace: &t.Place{
+			ID:        "Admin",
+			Email:     "Admin",
+			Name:      "Admin",
+			Confirmed: true,
+		},
 	}
 	return usecase, j, nil
 }

@@ -101,16 +101,18 @@ func (d *handler) Confirm() http.HandlerFunc {
 	}
 }
 
-func NewServer(port, mongoDBName, mongoHost, mongoPlace, mongoPwd, jwtKeyPath, jwtSecretPath, fromEmail, emailPwd, smtpHost, smtpPort, rpcPwd string) (server *api.Server, h *handler, err error) {
+func NewServer(port, mongoDBName, mongoHost, mongoPlace, mongoPwd, jwtKeyPath, jwtSecretPath, fromEmail, emailPwd, smtpHost, smtpPort, rpcPwd string) (server *api.Server, service *users.UserService, err error) {
 	fmt.Printf("Listening for users on %s...\n", port)
 
-	Usecase, j, err := users.Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, port, jwtKeyPath, jwtSecretPath, fromEmail, emailPwd, smtpHost, smtpPort, rpcPwd)
+	svc, j, err := users.Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, port, jwtKeyPath, jwtSecretPath, fromEmail, emailPwd, smtpHost, smtpPort, rpcPwd)
 	if err != nil {
 		log.Panic(err)
+		return nil, nil, err
 	}
+	service = &svc
 
-	h = &handler{
-		Usecase: Usecase,
+	h := &handler{
+		Usecase: svc,
 		jwt:     j,
 	}
 

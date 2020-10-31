@@ -6,10 +6,12 @@ import SvgQRCode from "react-native-qrcode-svg"
 
 import { Text, View } from "../components/Themed"
 import { RootState } from "../state"
+import { ProfileType } from "../state/types"
 import { clearProfile } from "../state/actions"
 
 const mapState = (state: RootState) => ({
   profile: state.profile,
+  isUser: state.profile?.profileType === ProfileType.User,
 })
 
 const mapDispatch = (dispatch: any) => {
@@ -23,15 +25,15 @@ const mapDispatch = (dispatch: any) => {
 const connector = connect(mapState, mapDispatch)
 
 const ProfileStackScreen = (props: ConnectedProps<typeof connector>) => {
-  const { profile, signOut } = props
+  const { profile, isUser, signOut } = props
   const name = profile?.name || "Not Logged In"
-
-  console.log("profile", profile)
 
   return (
     <View style={tailwind("h-full items-center bg-gray-500 p-12 pt-20")}>
       <Text style={styles.title}>{name}</Text>
-      <Text style={styles.title}>{ profile?.email }</Text>
+      { isUser &&
+        <Text style={styles.title}>{ profile?.email }</Text>
+      }
       <View
         style={styles.separator}
         lightColor="#eee"
@@ -45,7 +47,9 @@ const ProfileStackScreen = (props: ConnectedProps<typeof connector>) => {
       >
         <Text>Logout</Text>
       </TouchableOpacity>
-      <SvgQRCode value={profile?.id} />
+      { !!(profile && profile.id) &&
+        <SvgQRCode value={profile?.id} />
+      }
     </View>
   )
 }

@@ -2,6 +2,7 @@ package checkins
 
 import (
 	"context"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -32,10 +33,10 @@ func (a *LoggerAdapter) Get(ctx context.Context, id string) (*t.CheckIn, error) 
 }
 
 // GetHistory gets checkin history
-func (a *LoggerAdapter) GetHistory(ctx context.Context, placeID string) ([]*t.CheckInHistory, error) {
+func (a *LoggerAdapter) GetHistory(ctx context.Context, placeID string, start, end *time.Time) ([]*t.CheckInHistory, error) {
 	defer a.Logger.Sync()
 	a.Logger.Info("getting check in history")
-	history, err := a.Usecase.GetHistory(ctx, placeID)
+	history, err := a.Usecase.GetHistory(ctx, placeID, start, end)
 	a.logErr(err)
 	return history, err
 }

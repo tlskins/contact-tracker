@@ -167,6 +167,7 @@ func (u *Usecase) AlertUsers(ctx context.Context, ids []string) (err error) {
 		); err != nil {
 			return
 		}
+		fmt.Printf("%s has been notified.\n", user.Name)
 	}
 	return nil
 }

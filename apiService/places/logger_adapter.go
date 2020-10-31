@@ -71,7 +71,6 @@ func (a *LoggerAdapter) Delete(ctx context.Context, id string) error {
 // SignIn a single place
 func (a *LoggerAdapter) SignIn(ctx context.Context, req *t.SignInReq) (*t.Place, error) {
 	defer a.Logger.Sync()
-	a.Logger.With(zap.String("email", req.Email))
 	a.Logger.Info("sign in a single place")
 	resp, err := a.Usecase.SignIn(ctx, req)
 	a.logErr(err)

@@ -96,10 +96,7 @@ const connector = connect(
             const { data } = resp
             setAuthToken(data.authToken)
             dispatch(
-              setProfile({
-                ...data,
-                profileType: ProfileType.Place,
-              })
+              setProfile({ ...data, profileType: ProfileType.Place })
             )
             dispatch(setPlace(data))
             return true
@@ -185,30 +182,38 @@ const LoginScreen = (props: ConnectedProps<typeof connector>) => {
           </>
         }
         
-        <Text style={tailwind("text-gray-600 font-semibold")}>Email</Text>
-        <TextInput
-          style={tailwind("rounded-lg border border-black h-8 w-40 p-2 m-2")}
-          onChangeText={(text) => setEmail(text)}
-          value={email}
-        />
-        <Text style={tailwind("text-gray-600 font-semibold")}>Password</Text>
-        <TextInput
-          style={tailwind("rounded-lg border border-black h-8 w-40 p-2 m-2")}
-          onChangeText={(text) => setPassword(text)}
-          value={password}
-          secureTextEntry={true}
-        />
-        { isRegister &&
+        { isUser &&
           <>
-            <Text style={tailwind("text-gray-600 font-semibold")}>Confirm Password</Text>
+            <Text style={tailwind("text-gray-600 font-semibold")}>Email</Text>
             <TextInput
               style={tailwind("rounded-lg border border-black h-8 w-40 p-2 m-2")}
-              onChangeText={(text) => setConfirmPassword(text)}
-              value={confirmPassword}
-              secureTextEntry={true}
+              onChangeText={(text) => setEmail(text)}
+              value={email}
             />
           </>
         }
+        
+        <View style={tailwind(`items-center ${bgColor}`)}>
+          <Text style={tailwind("text-gray-600 font-semibold")}>Password</Text>
+          <TextInput
+            style={tailwind("rounded-lg border border-black w-40 h-8 p-2 m-2")}
+            onChangeText={(text) => setPassword(text)}
+            value={password}
+            secureTextEntry={true}
+          />
+
+          { isRegister &&
+            <>
+              <Text style={tailwind("text-gray-600 font-semibold")}>Confirm Password</Text>
+              <TextInput
+                style={tailwind("rounded-lg border border-black w-40 h-8 p-2 m-2")}
+                onChangeText={(text) => setConfirmPassword(text)}
+                value={confirmPassword}
+                secureTextEntry={true}
+              />
+            </>
+          }
+        </View>
       </View>
 
       <View
@@ -218,20 +223,21 @@ const LoginScreen = (props: ConnectedProps<typeof connector>) => {
       />
 
       { !isRegister &&
-        <>
           <TouchableOpacity
             style={tailwind("flex justify-center rounded-lg border border-black p-2 m-2")}
             onPress={onLogin}
           >
             <Text style={tailwind("text-black")}>Login</Text>
           </TouchableOpacity>
+      }
+
+      { (!isRegister && isUser) &&
           <TouchableOpacity
             style={tailwind("flex justify-center underline p-2 m-2")}
             onPress={() => setIsRegister(true)}
           >
             <Text style={tailwind("text-black")}>Register?</Text>
           </TouchableOpacity>
-        </>
       }
 
       { isRegister &&
@@ -262,8 +268,8 @@ const LoginScreen = (props: ConnectedProps<typeof connector>) => {
           value={ProfileType.User.toString()}
         />
         <Picker.Item
-          label={ProfileType.Place.toString()}
-          value={ProfileType.Place.toString()}
+          label={ProfileType.Store.toString()}
+          value={ProfileType.Store.toString()}
         />
       </Picker>
     </View>

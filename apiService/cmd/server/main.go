@@ -51,6 +51,7 @@ func main() {
 		smtpPort            = os.Getenv("SMTP_PORT")
 		rpcPwd              = os.Getenv("RPC_AUTH_PWD")
 		storePwd            = os.Getenv("STORE_PWD")
+		timezone            = os.Getenv("TIMEZONE")
 	)
 
 	chkServer, checkService, err := checkHttp.NewServer(
@@ -113,7 +114,7 @@ func main() {
 
 	ctx := context.TODO()
 	reader := bufio.NewReader(os.Stdin)
-	loc, err := time.LoadLocation("America/New_York")
+	loc, err := time.LoadLocation(timezone)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -165,9 +166,9 @@ func main() {
 					len(history.Contacts),
 				)
 				for _, contact := range history.Contacts {
-					contactOut := history.Out.In(loc).Format("Jan 2 3:04 PM")
+					contactOut := contact.Out.In(loc).Format("Jan 2 3:04 PM")
 					if contact.TentativeCheckout {
-						contactOut = fmt.Sprintf("(Tentative) %s", out)
+						contactOut = fmt.Sprintf("(Tentative) %s", contactOut)
 					}
 					fmt.Printf(
 						"\t%s From: %s To: %s\n",

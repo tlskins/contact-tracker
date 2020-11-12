@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/globalsign/mgo"
 	"github.com/google/uuid"
@@ -41,11 +42,32 @@ func (r *MongoUserRepository) Get(_ context.Context, id string) (resp *t.User, e
 	return
 }
 
+func (r *MongoUserRepository) GetByIds(_ context.Context, ids []string) (resp []*t.User, err error) {
+	sess, c := r.C(ColUsers)
+	defer sess.Close()
+
+	resp = []*t.User{}
+	err = m.Find(c, &resp, m.M{"_id": m.M{"$in": ids}})
+	return
+}
+
+func (r *MongoUserRepository) Search(_ context.Context, search string) (resp []*t.User, err error) {
+	sess, c := r.C(ColUsers)
+	defer sess.Close()
+
+	resp = []*t.User{}
+	err = m.Find(c, &resp, m.M{"$or": []m.M{
+		{"nm": m.M{"$regex": fmt.Sprintf("(?i)%s", search)}},
+		{"em": m.M{"$regex": fmt.Sprintf("(?i)%s", search)}},
+	}})
+	return
+}
+
 func (r *MongoUserRepository) FindByEmail(_ context.Context, email string) (resp *t.User, err error) {
 	sess, c := r.C(ColUsers)
 	defer sess.Close()
 
-	err = m.FindOne(c, &resp, m.M{"em": email})
+	err = m.FindOne(c, &resp, m.M{"em": m.M{"$regex": fmt.Sprintf("(?i)^%s$", email)}})
 	return
 }
 

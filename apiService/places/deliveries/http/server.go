@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	api "github.com/contact-tracker/apiService/pkg/api/http"
-	"github.com/contact-tracker/apiService/pkg/auth"
 	"github.com/go-chi/chi"
 
+	api "github.com/contact-tracker/apiService/pkg/api/http"
+	"github.com/contact-tracker/apiService/pkg/auth"
 	"github.com/contact-tracker/apiService/places"
 	t "github.com/contact-tracker/apiService/places/types"
 )
@@ -17,7 +17,7 @@ import (
 const fiveSecondsTimeout = time.Second * 5
 
 type handler struct {
-	usecase places.PlaceService
+	Usecase places.PlaceService
 	jwt     *auth.JWTService
 }
 
@@ -25,7 +25,7 @@ func (d *handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		id := chi.URLParam(r, "id")
-		place, err := d.usecase.Get(ctx, id)
+		place, err := d.Usecase.Get(ctx, id)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, place)
 	}
@@ -34,7 +34,7 @@ func (d *handler) Get() http.HandlerFunc {
 func (d *handler) GetAll() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		places, err := d.usecase.GetAll(ctx)
+		places, err := d.Usecase.GetAll(ctx)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, places)
 	}
@@ -47,7 +47,7 @@ func (d *handler) Update() http.HandlerFunc {
 		api.ParseHTTPParams(r, req)
 
 		req.ID = chi.URLParam(r, "id")
-		resp, err := d.usecase.Update(ctx, req)
+		resp, err := d.Usecase.Update(ctx, req)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, resp)
 	}
@@ -58,10 +58,11 @@ func (d *handler) Create() http.HandlerFunc {
 		ctx := r.Context()
 		req := &t.CreatePlace{}
 		api.ParseHTTPParams(r, req)
-
-		resp, err := d.usecase.Create(ctx, req)
+		place, err := d.Usecase.Create(ctx, req)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
-		api.WriteJSON(w, http.StatusOK, resp)
+		place.AuthToken, err = d.jwt.GenAccessToken(place)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
+		api.WriteJSON(w, http.StatusOK, place)
 	}
 }
 
@@ -70,7 +71,7 @@ func (d *handler) Delete() http.HandlerFunc {
 		ctx := r.Context()
 		id := chi.URLParam(r, "id")
 
-		err := d.usecase.Delete(ctx, id)
+		err := d.Usecase.Delete(ctx, id)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, nil)
 	}
@@ -81,18 +82,10 @@ func (d *handler) SignIn() http.HandlerFunc {
 		ctx := r.Context()
 		req := &t.SignInReq{}
 		api.ParseHTTPParams(r, req)
-
-		place, err := d.usecase.SignIn(ctx, req)
+		place, err := d.Usecase.SignIn(ctx, req)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
-		accessToken, err := d.jwt.GenAccessToken(place)
+		place.AuthToken, err = d.jwt.GenAccessToken(place)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
-
-		http.SetCookie(w, &http.Cookie{
-			Name:  auth.AccessTokenKey,
-			Value: accessToken,
-			// Expires: expirationTime,
-		})
-
 		api.WriteJSON(w, http.StatusOK, place)
 	}
 }
@@ -102,23 +95,29 @@ func (d *handler) Confirm() http.HandlerFunc {
 		ctx := r.Context()
 		id := chi.URLParam(r, "id")
 
-		err := d.usecase.Confirm(ctx, id)
+		err := d.Usecase.Confirm(ctx, id)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, nil)
 	}
 }
 
-// Routes -
-func Routes() (*chi.Mux, error) {
-	fmt.Println("Starting place http routes...")
-	usecase, j, err := places.Init()
+func NewServer(port, mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd, storePwd string) (server *api.Server, service *places.PlaceService, err error) {
+	fmt.Printf("Listening for places on %s...\n", port)
+
+	svc, j, err := places.Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, placesHost, jwtKeyPath, jwtSecretPath, rpcPwd, storePwd)
 	if err != nil {
 		log.Panic(err)
+		return nil, nil, err
+	}
+	service = &svc
+
+	h := &handler{
+		Usecase: svc,
+		jwt:     j,
 	}
 
-	h := &handler{usecase, j}
-	r := api.NewRouter()
-
+	server = api.NewServer(port)
+	r := server.Router
 	r.Post("/places", h.Create())
 	r.Get("/places", j.AuthorizeHandler(h.GetAll()))
 	r.Get("/places/{id}", j.AuthorizeHandler(h.Get()))
@@ -127,5 +126,5 @@ func Routes() (*chi.Mux, error) {
 	r.Post("/places/login", h.SignIn())
 	r.Get("/places/{id}/confirm", h.Confirm())
 
-	return r, nil
+	return
 }

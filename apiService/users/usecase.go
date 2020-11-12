@@ -20,6 +20,8 @@ var (
 
 type repository interface {
 	Get(ctx context.Context, id string) (*t.User, error)
+	GetByIds(ctx context.Context, id []string) ([]*t.User, error)
+	Search(ctx context.Context, search string) ([]*t.User, error)
 	GetAll(ctx context.Context) ([]*t.User, error)
 	Update(ctx context.Context, user *t.UpdateUser) (*t.User, error)
 	FindByEmail(ctx context.Context, email string) (*t.User, error)
@@ -29,9 +31,9 @@ type repository interface {
 
 // Usecase for interacting with users
 type Usecase struct {
-	Repository repository
-	Email      email.EmailService
-	usersHost  string
+	Repository  repository
+	EmailClient *email.EmailClient
+	usersHost   string
 }
 
 // Get a single user
@@ -48,6 +50,15 @@ func (u *Usecase) GetAll(ctx context.Context) ([]*t.User, error) {
 	users, err := u.Repository.GetAll(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "error fetching all users")
+	}
+	return users, nil
+}
+
+// Search for users
+func (u *Usecase) Search(ctx context.Context, search string) ([]*t.User, error) {
+	users, err := u.Repository.Search(ctx, search)
+	if err != nil {
+		return nil, errors.Wrap(err, "error searching users")
 	}
 	return users, nil
 }
@@ -78,9 +89,6 @@ func (u *Usecase) SignIn(ctx context.Context, req *t.SignInReq) (resp *t.User, e
 	if err != nil {
 		return nil, errors.Wrap(err, "error finding user by email")
 	}
-	if !user.Confirmed {
-		return nil, errors.New("user must first confirm by email")
-	}
 	if err = auth.ValidateCredentials(user.EncryptedPassword, req.Password); err != nil {
 		return nil, errors.Wrap(err, "error validating credentials")
 	}
@@ -101,18 +109,20 @@ func (u *Usecase) Create(ctx context.Context, req *t.CreateUser) (resp *t.User, 
 		return nil, validationErrors
 	}
 
+	if _, err := u.Repository.FindByEmail(ctx, req.Email); err == nil {
+		return nil, errors.New("error user for email already exists")
+	}
+
 	user := req.ToUser()
 	user.ID = u.newID()
+	now := time.Now()
+	user.LastLoggedIn = &now
 	if user.EncryptedPassword, err = auth.EncryptPassword(req.Password); err != nil {
 		return nil, errors.Wrap(err, "error encrypting password")
 	}
 
 	if resp, err = u.Repository.Create(ctx, user); err != nil {
 		return nil, errors.Wrap(err, "error creating new user")
-	}
-
-	if err := u.Email.SendEmail(t.WelcomeEmailInput(user, u.usersHost)); err != nil {
-		return nil, err
 	}
 
 	return resp, nil
@@ -139,6 +149,25 @@ func (u *Usecase) Confirm(ctx context.Context, id string) error {
 	c := true
 	if _, err := u.Repository.Update(ctx, &t.UpdateUser{ID: id, Confirmed: &c}); err != nil {
 		return errors.Wrap(err, "error confirming user")
+	}
+	return nil
+}
+
+// Alert users of possible unsafe contact
+func (u *Usecase) AlertUsers(ctx context.Context, ids []string) (err error) {
+	var users []*t.User
+	if users, err = u.Repository.GetByIds(ctx, ids); err != nil {
+		return errors.Wrap(err, "error getting users for alert")
+	}
+	for _, user := range users {
+		if err = u.EmailClient.SendEmail(
+			user.Email,
+			"Important Notice From Contact Tracker",
+			"Hello from Contact Tracker,\n\nThis email is a warning that you may have been in contact with someone who has recently tested positive for COVID-19. Please have yourself tested and be sure to wear a mask in public.\n\nThank You,\nContact Tracker Team",
+		); err != nil {
+			return
+		}
+		fmt.Printf("%s has been notified.\n", user.Name)
 	}
 	return nil
 }

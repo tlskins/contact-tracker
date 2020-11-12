@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/contact-tracker/apiService/pkg/auth"
-	"github.com/contact-tracker/apiService/pkg/email"
 	t "github.com/contact-tracker/apiService/places/types"
 
 	"github.com/google/uuid"
@@ -30,8 +29,9 @@ type repository interface {
 // Usecase for interacting with places
 type Usecase struct {
 	Repository repository
-	Email      email.EmailService
 	placesHost string
+	storePwd   string
+	adminPlace *t.Place
 }
 
 // Get a single place
@@ -74,18 +74,20 @@ func (u *Usecase) Create(ctx context.Context, req *t.CreatePlace) (resp *t.Place
 		return nil, validationErrors
 	}
 
+	if _, err := u.Repository.FindByEmail(ctx, req.Email); err == nil {
+		return nil, errors.New("error place for email already exists")
+	}
+
 	place := req.ToPlace()
 	place.ID = u.newID()
+	now := time.Now()
+	place.LastLoggedIn = &now
 	if place.EncryptedPassword, err = auth.EncryptPassword(req.Password); err != nil {
 		return nil, errors.Wrap(err, "error encrypting password")
 	}
 
 	if resp, err = u.Repository.Create(ctx, place); err != nil {
 		return nil, errors.Wrap(err, "error creating new place")
-	}
-
-	if err := u.Email.SendEmail(t.WelcomeEmailInput(place, u.placesHost)); err != nil {
-		return nil, err
 	}
 
 	return resp, nil
@@ -100,30 +102,30 @@ func (u *Usecase) Delete(ctx context.Context, id string) error {
 }
 
 // SignIn -
-func (u *Usecase) SignIn(ctx context.Context, req *t.SignInReq) (resp *t.Place, err error) {
+func (u *Usecase) SignIn(ctx context.Context, req *t.SignInReq) (place *t.Place, err error) {
 	validate = validator.New()
 	if err = validate.Struct(req); err != nil {
-		validationErrors := err.(validator.ValidationErrors)
-		return nil, validationErrors
+		return nil, err.(validator.ValidationErrors)
 	}
 
-	place, err := u.Repository.FindByEmail(ctx, req.Email)
-	if err != nil {
-		return nil, errors.Wrap(err, "error finding place by email")
-	}
-	if !place.Confirmed {
-		return nil, errors.New("place must first confirm by email")
-	}
-	if err = auth.ValidateCredentials(place.EncryptedPassword, req.Password); err != nil {
-		return nil, errors.Wrap(err, "error validating credentials")
-	}
+	// place, err := u.Repository.FindByEmail(ctx, req.Email)
+	// if err != nil {
+	// 	return nil, errors.Wrap(err, "error finding place by email")
+	// }
+	// if err = auth.ValidateCredentials(place.EncryptedPassword, req.Password); err != nil {
+	// 	return nil, errors.Wrap(err, "error validating credentials")
+	// }
 
-	now := time.Now()
-	if resp, err = u.Repository.Update(ctx, &t.UpdatePlace{ID: place.ID, LastLoggedIn: &now}); err != nil {
-		return nil, errors.Wrap(err, "error updating place")
-	}
+	// now := time.Now()
+	// if resp, err = u.Repository.Update(ctx, &t.UpdatePlace{ID: place.ID, LastLoggedIn: &now}); err != nil {
+	// 	return nil, errors.Wrap(err, "error updating place")
+	// }
 
-	return resp, err
+	if req.Password != u.storePwd {
+		return nil, errors.New("Invalid store owner password")
+	}
+	place = u.adminPlace
+	return
 }
 
 // Confirm a place

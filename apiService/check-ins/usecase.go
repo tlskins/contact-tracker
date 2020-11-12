@@ -19,9 +19,9 @@ var (
 
 type repository interface {
 	Get(ctx context.Context, id string) (*t.CheckIn, error)
-	GetHistory(_ context.Context, placeID string) ([]*t.CheckInHistory, error)
-	GetAll(ctx context.Context, userID, placeID *string, start, end *time.Time) ([]*t.CheckIn, error)
-	LastCheckIn(ctx context.Context, userID, placeID string) (*t.CheckIn, error)
+	GetHistory(_ context.Context, userID string, start, end *time.Time) ([]*t.CheckInHistory, error)
+	GetAll(ctx context.Context, userID *string, start, end *time.Time) ([]*t.CheckIn, error)
+	LastCheckIn(ctx context.Context, userID string) (*t.CheckIn, error)
 	Create(ctx context.Context, checkIn *t.CheckIn) (*t.CheckIn, error)
 	CheckOut(ctx context.Context, id string) (*t.CheckIn, error)
 	Delete(ctx context.Context, id string) error
@@ -48,9 +48,9 @@ func (u *Usecase) Get(ctx context.Context, id string) (*t.CheckIn, error) {
 }
 
 // GetHistory gets a place's check in history and contacts
-func (u *Usecase) GetHistory(ctx context.Context, placeID string) (history []*t.CheckInHistory, err error) {
+func (u *Usecase) GetHistory(ctx context.Context, placeID string, start, end *time.Time) (history []*t.CheckInHistory, err error) {
 	history = []*t.CheckInHistory{}
-	if history, err = u.Repository.GetHistory(ctx, placeID); err != nil {
+	if history, err = u.Repository.GetHistory(ctx, placeID, start, end); err != nil {
 		return nil, errors.Wrap(err, "error fetching check ins")
 	}
 	return
@@ -64,7 +64,7 @@ func (u *Usecase) GetAll(ctx context.Context, req *t.GetCheckIns) ([]*t.CheckIn,
 		return nil, validationErrors
 	}
 
-	checkIns, err := u.Repository.GetAll(ctx, req.UserID, req.PlaceID, req.Start, req.End)
+	checkIns, err := u.Repository.GetAll(ctx, req.UserID, req.Start, req.End)
 	if err != nil {
 		return nil, errors.Wrap(err, "error fetching check ins")
 	}
@@ -80,9 +80,7 @@ func (u *Usecase) CheckIn(ctx context.Context, req *t.CreateCheckIn) (resp *t.Ch
 	}
 
 	var checkIn *t.CheckIn
-	if last, err := u.Repository.LastCheckIn(ctx, req.UserID, req.PlaceID); err != nil {
-		return nil, err
-	} else if last != nil {
+	if last, err := u.Repository.LastCheckIn(ctx, req.UserID); err == nil {
 		resp, err = u.Repository.CheckOut(ctx, last.ID)
 		if err != nil {
 			return nil, err
@@ -92,11 +90,14 @@ func (u *Usecase) CheckIn(ctx context.Context, req *t.CreateCheckIn) (resp *t.Ch
 		if err != nil {
 			return nil, err
 		}
-		place, err := u.RPC.GetPlace(ctx, req.PlaceID)
-		if err != nil {
-			return nil, err
+		now := time.Now()
+		checkIn = &t.CheckIn{
+			In: &now,
+			User: &t.User{
+				ID:   user.ID,
+				Name: user.Name,
+			},
 		}
-		checkIn = t.NewCheckIn(t.ToCheckInPlace(place), t.ToCheckInUser(user))
 		resp, err = u.Repository.Create(ctx, checkIn)
 	}
 	return

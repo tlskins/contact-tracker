@@ -57,3 +57,12 @@ func IsErrorStatusCode(code int) bool {
 	}
 	return true
 }
+
+func Recoverer(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		defer HandleError(w)
+		next.ServeHTTP(w, r)
+	}
+
+	return http.HandlerFunc(fn)
+}

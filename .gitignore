@@ -26,3 +26,6 @@ config.*
 *.code-workspace
 apiService/id_rsa
 apiService/id_rsa.pub
+
+apiService/cmd/server/id_rsa
+apiService/cmd/server/id_rsa.pub

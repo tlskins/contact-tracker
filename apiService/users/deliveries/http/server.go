@@ -6,19 +6,18 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi"
+
 	api "github.com/contact-tracker/apiService/pkg/api/http"
 	"github.com/contact-tracker/apiService/pkg/auth"
-
 	"github.com/contact-tracker/apiService/users"
 	t "github.com/contact-tracker/apiService/users/types"
-
-	"github.com/go-chi/chi"
 )
 
 const fiveSecondsTimeout = time.Second * 5
 
 type handler struct {
-	usecase users.UserService
+	Usecase users.UserService
 	jwt     *auth.JWTService
 }
 
@@ -26,7 +25,7 @@ func (d *handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		id := chi.URLParam(r, "id")
-		user, err := d.usecase.Get(ctx, id)
+		user, err := d.Usecase.Get(ctx, id)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, user)
 	}
@@ -35,7 +34,7 @@ func (d *handler) Get() http.HandlerFunc {
 func (d *handler) GetAll() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		users, err := d.usecase.GetAll(ctx)
+		users, err := d.Usecase.GetAll(ctx)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, users)
 	}
@@ -48,7 +47,7 @@ func (d *handler) Update() http.HandlerFunc {
 		api.ParseHTTPParams(r, req)
 
 		req.ID = chi.URLParam(r, "id")
-		resp, err := d.usecase.Update(ctx, req)
+		resp, err := d.Usecase.Update(ctx, req)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, resp)
 	}
@@ -59,18 +58,10 @@ func (d *handler) SignIn() http.HandlerFunc {
 		ctx := r.Context()
 		req := &t.SignInReq{}
 		api.ParseHTTPParams(r, req)
-
-		user, err := d.usecase.SignIn(ctx, req)
+		user, err := d.Usecase.SignIn(ctx, req)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
-		accessToken, err := d.jwt.GenAccessToken(user)
+		user.AuthToken, err = d.jwt.GenAccessToken(user)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
-
-		http.SetCookie(w, &http.Cookie{
-			Name:  auth.AccessTokenKey,
-			Value: accessToken,
-			// Expires: expirationTime,
-		})
-
 		api.WriteJSON(w, http.StatusOK, user)
 	}
 }
@@ -80,10 +71,11 @@ func (d *handler) Create() http.HandlerFunc {
 		ctx := r.Context()
 		req := &t.CreateUser{}
 		api.ParseHTTPParams(r, req)
-
-		resp, err := d.usecase.Create(ctx, req)
+		user, err := d.Usecase.Create(ctx, req)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
-		api.WriteJSON(w, http.StatusOK, resp)
+		user.AuthToken, err = d.jwt.GenAccessToken(user)
+		api.CheckHTTPError(http.StatusInternalServerError, err)
+		api.WriteJSON(w, http.StatusOK, user)
 	}
 }
 
@@ -92,7 +84,7 @@ func (d *handler) Delete() http.HandlerFunc {
 		ctx := r.Context()
 		id := chi.URLParam(r, "id")
 
-		err := d.usecase.Delete(ctx, id)
+		err := d.Usecase.Delete(ctx, id)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, nil)
 	}
@@ -103,23 +95,29 @@ func (d *handler) Confirm() http.HandlerFunc {
 		ctx := r.Context()
 		id := chi.URLParam(r, "id")
 
-		err := d.usecase.Confirm(ctx, id)
+		err := d.Usecase.Confirm(ctx, id)
 		api.CheckHTTPError(http.StatusInternalServerError, err)
 		api.WriteJSON(w, http.StatusOK, nil)
 	}
 }
 
-// Routes -
-func Routes() (*chi.Mux, error) {
-	fmt.Println("Starting user http routes...")
-	usecase, j, err := users.Init()
+func NewServer(port, mongoDBName, mongoHost, mongoPlace, mongoPwd, jwtKeyPath, jwtSecretPath, fromEmail, emailPwd, smtpHost, smtpPort, rpcPwd string) (server *api.Server, service *users.UserService, err error) {
+	fmt.Printf("Listening for users on %s...\n", port)
+
+	svc, j, err := users.Init(mongoDBName, mongoHost, mongoPlace, mongoPwd, port, jwtKeyPath, jwtSecretPath, fromEmail, emailPwd, smtpHost, smtpPort, rpcPwd)
 	if err != nil {
 		log.Panic(err)
+		return nil, nil, err
+	}
+	service = &svc
+
+	h := &handler{
+		Usecase: svc,
+		jwt:     j,
 	}
 
-	h := &handler{usecase, j}
-	r := api.NewRouter()
-
+	server = api.NewServer(port)
+	r := server.Router
 	r.Post("/users", h.Create())
 	r.Get("/users", j.AuthorizeHandler(h.GetAll()))
 	r.Get("/users/{id}", j.AuthorizeHandler(h.Get()))
@@ -128,5 +126,5 @@ func Routes() (*chi.Mux, error) {
 	r.Post("/users/login", h.SignIn())
 	r.Get("/users/{id}/confirm", h.Confirm())
 
-	return r, nil
+	return
 }

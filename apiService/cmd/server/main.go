@@ -124,6 +124,7 @@ func main() {
 	for {
 		fmt.Printf("\n-> ")
 		command, _ := reader.ReadString('\n')
+		command = strings.Replace(command, "\r\n", "", -1)
 		command = strings.Replace(command, "\n", "", -1)
 
 		if strings.Compare("customers", command) == 0 {

@@ -24,7 +24,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "extra": {
-      "apiHost": "https://14acde804e63.ngrok.io"
+      "apiHost": "https://5ce21b120ae3.ngrok.io"
     }
   }
 }

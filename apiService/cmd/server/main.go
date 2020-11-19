@@ -124,8 +124,7 @@ func main() {
 	for {
 		fmt.Printf("\n-> ")
 		command, _ := reader.ReadString('\n')
-		command = strings.Replace(command, "\r\n", "", -1)
-		command = strings.Replace(command, "\n", "", -1)
+		command = cleanCommand(command)
 
 		if strings.Compare("customers", command) == 0 {
 			users, err := (*usersService).GetAll(ctx)
@@ -141,7 +140,7 @@ func main() {
 			userID := ""
 			fmt.Printf("Type A to search all users histories otherwise any other response will prompt you to search for a specific user:\n\n-> ")
 			historySearch, _ := reader.ReadString('\n')
-			historySearch = strings.Replace(historySearch, "\n", "", -1)
+			historySearch = cleanCommand(historySearch)
 			if strings.Compare("a", historySearch) != 0 && strings.Compare("A", historySearch) != 0 {
 				user := searchUser(ctx, usersService, reader)
 				if user == nil {
@@ -212,12 +211,17 @@ func main() {
 	}
 }
 
+func cleanCommand(command string) string {
+	out := strings.Replace(command, "\r\n", "", -1)
+	return strings.Replace(out, "\n", "", -1)
+}
+
 func searchUser(ctx context.Context, usersService *users.UserService, reader *bufio.Reader) (resp *uT.User) {
 	searchingUser := true
 	for searchingUser {
 		fmt.Printf("Type in part of the user's name or email to search for a user or q to exit:\n\n-> ")
 		usrSearch, _ := reader.ReadString('\n')
-		usrSearch = strings.Replace(usrSearch, "\n", "", -1)
+		usrSearch = cleanCommand(usrSearch)
 		if strings.Compare("q", usrSearch) == 0 {
 			searchingUser = false
 			continue
@@ -233,7 +237,7 @@ func searchUser(ctx context.Context, usersService *users.UserService, reader *bu
 		}
 		fmt.Printf("\n-> ")
 		usrSelect, _ := reader.ReadString('\n')
-		usrSelect = strings.Replace(usrSelect, "\n", "", -1)
+		usrSelect = cleanCommand(usrSelect)
 		usrIdx, err := strconv.Atoi(usrSelect)
 		if err != nil || usrIdx > len(users) || usrIdx < 1 {
 			continue
@@ -242,7 +246,7 @@ func searchUser(ctx context.Context, usersService *users.UserService, reader *bu
 
 		fmt.Printf("\nIs this user correct? %s - %s\nY - Yes\nAny other key - No\n\n-> ", user.Name, user.Email)
 		usrConfirm, _ := reader.ReadString('\n')
-		usrConfirm = strings.Replace(usrConfirm, "\n", "", -1)
+		usrConfirm = cleanCommand(usrConfirm)
 		if strings.Compare("Y", usrConfirm) == 0 || strings.Compare("y", usrConfirm) == 0 {
 			resp = user
 			searchingUser = false

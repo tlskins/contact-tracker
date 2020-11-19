@@ -32,7 +32,8 @@ const mapDispatch = (dispatch: any) => {
         console.log("before checking in...")
         const resp = await instance.post(`/check-ins`, { userId, placeId })
         console.log("resp", resp)
-        Alert.alert("Check In", "Success", [{ text: "OK" }], {
+        const title = resp?.data?.out ? "Check Out" : "Check In"
+        Alert.alert(title, "Success", [{ text: "OK" }], {
           cancelable: false,
         })
       } catch (e) {
